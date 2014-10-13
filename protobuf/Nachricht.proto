@@ -1,0 +1,24 @@
+package protobuf;
+
+message Nachricht {
+
+	enum NachrichtenTyp {
+		KONTROLLNACHRICHT = 0;
+		ANWENDUNGSNACHRICHT = 1;
+	}
+	enum KontrollTyp {
+		INITIALISIEREN = 0;
+		BEENDEN = 1;
+	}
+	//message NachrichtenInhalt {
+	//	required string nachrichtenInhalt = 1;
+	//	optional KontrollTyp kontrollTyp = 2;
+	//}
+
+	required string sourceIP = 1;
+	required int32 sourcePort = 2;
+	required int32 sourceID = 3;
+	required NachrichtenTyp nachrichtenTyp = 4 [default = ANWENDUNGSNACHRICHT];
+	optional string zeitStempel = 5;
+	repeated string nachrichtenInhalt = 6;
+}

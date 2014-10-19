@@ -7,10 +7,18 @@ import (
 )
 
 // A network type from me
+// It should contain a name of the network entity, a protocol that is used
+// ("udp" or "tcp") and the ip address.
 type NetworkClient struct {
-	clientName string
-	ipAddress  net.IP
+	clientName   string
+	usedProtocol string
+	ipAddress    net.IP
 }
+
+const (
+	UDP = "udp"
+	TCP = "tcp"
+)
 
 // New returns a NetworkClient type.
 func New() NetworkClient {
@@ -52,6 +60,19 @@ func (networkClient NetworkClient) ClientName() string {
 // This function is used to set the name of the NetworkClient type.
 func (networkClient *NetworkClient) SetClientName(clientName string) {
 	networkClient.clientName = clientName
+}
+
+// Returns the currently set protcol. For exmaple "udp" or "tcp".
+func (networkClient NetworkClient) UsedProtocol() string {
+	return networkClient.usedProtocol
+}
+
+func (networkClient *NetworkClient) SetUsedProtocol(usedProtocol string) error {
+	if usedProtocol != UDP && usedProtocol != TCP {
+		return errors.New("The protocol has to be udp or tcp.")
+	}
+	networkClient.usedProtocol = usedProtocol
+	return nil
 }
 
 // Implements a string method thas is part of the String interface to

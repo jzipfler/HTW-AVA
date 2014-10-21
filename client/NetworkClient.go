@@ -67,6 +67,8 @@ func (networkClient NetworkClient) UsedProtocol() string {
 	return networkClient.usedProtocol
 }
 
+// Set the usedProtocol field to udp or tcp. If a other protocol is given as
+// argument, the function returns an error.
 func (networkClient *NetworkClient) SetUsedProtocol(usedProtocol string) error {
 	if usedProtocol != UDP && usedProtocol != TCP {
 		return errors.New("The protocol has to be udp or tcp.")

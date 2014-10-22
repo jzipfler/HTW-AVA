@@ -8,7 +8,10 @@ import (
 // This method takes the string and checks if the string points to a file
 // that exists.
 func CheckIfFileExists(pathToFile string) error {
-	if file, err := os.Stat(pathToFile); err == nil && !file.IsDir() {
+	if file, err := os.Stat(pathToFile); err == nil {
+		if file.IsDir() {
+			return errors.New("The given path belongs to a folder.")
+		}
 		return nil
 	}
 	return errors.New("The given file does not exist.")

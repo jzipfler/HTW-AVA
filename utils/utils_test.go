@@ -5,20 +5,31 @@ package utils_test
 import (
 	"github.com/jzipfler/htw/ava/utils"
 	"os"
+	"path"
 	"testing"
 )
 
 const (
 	FILE_WITH_READ_PERMISSION          = "file_with_write.txt"
-	FILE_WITHOUT_READ_WRITE_PERMISSION = "/tmp/file_without_read.txt"
+	FILE_WITHOUT_READ_WRITE_PERMISSION = "file_without_read.txt"
 )
 
 // Use the both constant files and a not existing file to check if the
 // CheckIfFileExists function works.
 func TestIfFileExists(t *testing.T) {
-	if err := utils.CheckIfFileExists(FILE_WITH_READ_PERMISSION); err != nil {
-		t.Error("The file: \"" + FILE_WITH_READ_PERMISSION + "\" exists but the check fails.")
+	//Create the file.
+	readWriteFilePath := path.Join(os.TempDir(), FILE_WITH_READ_PERMISSION)
+	readWriteFile, err := os.Create(readWriteFilePath)
+	if err != nil {
+		t.Fatal(err)
 	}
+	//Change the permissions that only the owner can read and write it.
+	readWriteFile.Chmod(0600)
+	if err := utils.CheckIfFileExists(readWriteFilePath); err != nil {
+		os.Remove(readWriteFile.Name())
+		t.Error("The file: \"" + readWriteFilePath + "\" exists but the check fails.")
+	}
+	os.Remove(readWriteFile.Name())
 	notExistingFile := "datei123ASD.txt"
 	if err := utils.CheckIfFileExists(notExistingFile); err == nil {
 		t.Error("The file: \"" + notExistingFile + "\" does not exists but no error occured.")
@@ -28,20 +39,31 @@ func TestIfFileExists(t *testing.T) {
 // Use the both constant files and a not existing file to check if the
 // CheckIfFileIsReadable function works.
 func TestIfFileIsReadable(t *testing.T) {
-	if err := utils.CheckIfFileIsReadable(FILE_WITH_READ_PERMISSION); err != nil {
-		t.Error("The file: \"" + FILE_WITH_READ_PERMISSION + "\" should be readable but an error occured during the check.")
-	}
 	//Create the file.
-	file, err := os.Create(FILE_WITHOUT_READ_WRITE_PERMISSION)
+	readWriteFilePath := path.Join(os.TempDir(), FILE_WITH_READ_PERMISSION)
+	readWriteFile, err := os.Create(readWriteFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	//Change the permissions that only the owner can read and write it.
+	readWriteFile.Chmod(0600)
+	if err := utils.CheckIfFileIsReadable(readWriteFilePath); err != nil {
+		os.Remove(readWriteFile.Name())
+		t.Error("The file: \"" + readWriteFilePath + "\" should be readable but an error occured during the check.")
+	}
+	os.Remove(readWriteFile.Name())
+	//Create the file.
+	withoutReadWriteFilePath := path.Join(os.TempDir(), FILE_WITHOUT_READ_WRITE_PERMISSION)
+	file, err := os.Create(withoutReadWriteFilePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	//Change the permissions that only the owner can read it.
 	file.Chmod(0200)
 	//Remove the file after checking. If a error occures and of not...
-	if err := utils.CheckIfFileIsReadable(FILE_WITHOUT_READ_WRITE_PERMISSION); err == nil {
+	if err := utils.CheckIfFileIsReadable(withoutReadWriteFilePath); err == nil {
 		os.Remove(file.Name())
-		t.Error("The file: \"" + FILE_WITHOUT_READ_WRITE_PERMISSION + "\" is not readable but no error occured during the check.")
+		t.Error("The file: \"" + withoutReadWriteFilePath + "\" is not readable but no error occured during the check.")
 	}
 	os.Remove(file.Name())
 }

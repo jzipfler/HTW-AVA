@@ -2,7 +2,7 @@ package server
 
 import (
 	"errors"
-	"github.com/jzipfler/htw/ava/client"
+	"github.com/jzipfler/htw-ava/client"
 	"strconv"
 )
 

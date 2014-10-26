@@ -4,7 +4,7 @@
 package server_test
 
 import (
-	"github.com/jzipfler/htw/ava/server"
+	"github.com/jzipfler/htw-ava/server"
 	"strconv"
 	"testing"
 )

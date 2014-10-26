@@ -3,7 +3,7 @@
 package utils_test
 
 import (
-	"github.com/jzipfler/htw/ava/utils"
+	"github.com/jzipfler/htw-ava/utils"
 	"os"
 	"path"
 	"testing"

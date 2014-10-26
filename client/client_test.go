@@ -5,7 +5,7 @@ package client_test
 
 import (
 	"fmt"
-	"github.com/jzipfler/htw/ava/client"
+	"github.com/jzipfler/htw-ava/client"
 	"testing"
 )
 

@@ -1,19 +1,15 @@
-// ClientStarter
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
+	"github.com/jzipfler/htw-ava/filehandler"
 	"github.com/jzipfler/htw-ava/server"
-	"github.com/jzipfler/htw-ava/utils"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 )
 
@@ -57,7 +53,17 @@ func main() {
 		os.Exit(0)
 	}
 	flag.Parse()
-	collectAllNodesFromFile()
+
+	if nodeListFile == "path/to/nodeList.txt" {
+		log.Fatalf("The nodeListFile is required.\n%s\n", ERROR_FOOTER)
+		os.Exit(1)
+	}
+	var readFromNodeListError error
+	allNodes, readFromNodeListError = filehandler.CollectAllFromNodeListFile(nodeListFile)
+	if readFromNodeListError != nil {
+		log.Fatalf("%s\n%s\n", readFromNodeListError.Error(), ERROR_FOOTER)
+	}
+
 	go signalHandler() // Handle CTRL-C signals
 	initializeLogger(loggingPrefix)
 
@@ -65,78 +71,6 @@ func main() {
 		startController()
 	} else {
 		startIndependentNode()
-	}
-}
-
-func collectAllNodesFromFile() {
-	if nodeListFile == "path/to/nodeList.txt" {
-		fmt.Printf("The nodeListFile is required.\n%s\n", ERROR_FOOTER)
-		os.Exit(1)
-	}
-	if err := utils.CheckIfFileIsReadable(nodeListFile); err != nil {
-		fmt.Printf("%s\n%s\n", err.Error(), ERROR_FOOTER)
-		os.Exit(1)
-	}
-	nodeListFileObject, _ := os.Open(nodeListFile)
-	defer nodeListFileObject.Close()
-	allNodes = make(map[int]server.NetworkServer, 10)
-	scanner := bufio.NewScanner(nodeListFileObject)
-	for scanner.Scan() {
-		var scanId int
-		var scanServerObject server.NetworkServer
-		line := scanner.Text()
-		if line == "" {
-			log.Printf("Leere Zeile gelesen.\n")
-			continue
-		}
-		if strings.HasPrefix(line, "#") {
-			log.Printf("Kommentar gelesen: \"%s\"\n", line)
-			continue
-		}
-		idAndIpPortArray := strings.Split(line, " ")
-		if len(idAndIpPortArray) == 0 {
-			log.Printf("Could not split the line with a space: \"%s\".\n%s\n", line, ERROR_FOOTER)
-			continue
-		}
-		scanId, err := strconv.Atoi(idAndIpPortArray[0])
-		if err != nil {
-			log.Printf("Could not parse the first part of the line to a number : \"%s\".\n%s\n", idAndIpPortArray[0], ERROR_FOOTER)
-			continue
-		} else {
-			scanServerObject.SetClientName(idAndIpPortArray[0])
-		}
-		ipAndPortArray := strings.Split(idAndIpPortArray[1], ":")
-		if len(ipAndPortArray) == 0 {
-			log.Printf("Could not split the ip address and port with a colon: \"%s\".\n%s\n", idAndIpPortArray[1], ERROR_FOOTER)
-			continue
-		}
-		if splitIpArray, err := net.LookupIP(ipAndPortArray[0]); err != nil {
-			if splitIpHostnameArray, err := net.LookupHost(ipAndPortArray[0]); err != nil {
-				log.Printf("Could not lookup this ip/host: \"%s\".\n%s\n", ipAndPortArray[0], ERROR_FOOTER)
-				continue
-			} else {
-				scanServerObject.SetIpAddressAsString(splitIpHostnameArray[0])
-			}
-		} else {
-			if len(splitIpArray) == 0 {
-				log.Printf("No ip found: \"%s\".\n%s\n", ipAndPortArray[0], ERROR_FOOTER)
-				continue
-			}
-			scanServerObject.SetIpAddress(splitIpArray[0])
-		}
-		if splitPort, err := strconv.Atoi(ipAndPortArray[1]); err != nil {
-			log.Printf("Could not parse the port: \"%s\".\n%s\n", ipAndPortArray[1], ERROR_FOOTER)
-			continue
-		} else {
-			scanServerObject.SetPort(splitPort)
-		}
-		allNodes[scanId] = scanServerObject
-	}
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-	if len(allNodes) == 0 {
-		log.Fatal("No nodes present... ABORT")
 	}
 }
 

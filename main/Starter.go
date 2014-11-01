@@ -75,14 +75,49 @@ func main() {
 }
 
 func startIndependentNode() {
+	quit := false
 	printMessage("Start current instance as independent node.")
-	printMessage("This node has the folowing settings: ")
 	thisNode = allNodes[id]
+	printMessage("This node has the folowing settings: ")
 	printMessage(thisNode)
+
+	for !quit {
+		quit = shouldRestartProgram()
+	}
 }
 
 func startController() {
+	quit := false
 	printMessage("Start current instance as controller.")
+
+	for !quit {
+		quit = shouldRestartProgram()
+	}
+}
+
+// Asks the user if he want to exit the program.
+// Returns true if and only if the user types y or j. False otherwise.
+func shouldRestartProgram() bool {
+	var input string
+	printMessage("Would you like to exit the program? (y/j/n)")
+	fmt.Print("\nInput: ")
+	if _, err := fmt.Scanln(&input); err == nil {
+		switch input {
+		case "y", "j":
+			printMessage("Program exists.")
+			return true
+		case "n":
+			printMessage(input)
+			return false
+		default:
+			printMessage("Please only insert y/j for \"YES\" or n for \"NO\".\n" + ERROR_FOOTER)
+			printMessage("Assume a \"n\" as input.")
+			return false
+		}
+	} else {
+		printMessage("Please only insert y/j for \"YES\" or n for \"NO\".\n" + ERROR_HEADER)
+	}
+	return false
 }
 
 // Creates a new logger which uses a buffer where he collects the messages.

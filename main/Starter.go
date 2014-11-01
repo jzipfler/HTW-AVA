@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 )
 
@@ -134,22 +133,25 @@ func printMessage(message interface{}) {
 		switch typeValue := message.(type) {
 		case fmt.Stringer:
 			log.Println(typeValue.String())
-		case string:
-			log.Println(message)
-		case int:
-			log.Println(strconv.Itoa(typeValue))
+		//case string:
+		//	log.Println(message)
+		//case int:
+		//	log.Println(strconv.Itoa(typeValue))
+		default:
+			log.Println(typeValue)
 		}
 	} else {
 		switch typeValue := message.(type) {
 		case fmt.Stringer:
 			logger.Println(typeValue.String())
-		case string:
-			logger.Println(message)
-		case int:
-			logger.Println(strconv.Itoa(typeValue))
+		//case string:
+		//	logger.Println(message)
+		//case int:
+		//	logger.Println(strconv.Itoa(typeValue))
+		default:
+			logger.Println(typeValue)
 		}
 	}
-
 }
 
 func printAndClearLoggerContent() {

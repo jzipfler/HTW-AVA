@@ -57,19 +57,28 @@ func CollectAllFromNodeListFile(nodeListFile string) (allNodes map[int]server.Ne
 			log.Printf("Could not split the ip address and port with a colon: \"%s\".\n%s\n", idAndIpPortArray[1], ERROR_FOOTER)
 			continue
 		}
+		//Check if the given part is a ip address or a host.
 		if splitIpArray, err := net.LookupIP(ipAndPortArray[0]); err != nil {
-			if splitIpHostnameArray, err := net.LookupHost(ipAndPortArray[0]); err != nil {
-				log.Printf("Could not lookup this ip/host: \"%s\".\n%s\n", ipAndPortArray[0], ERROR_FOOTER)
-				continue
-			} else {
-				scanServerObject.SetIpAddressAsString(splitIpHostnameArray[0])
-			}
+			log.Printf("Could not lookup this ip/host: \"%s\".\n%s\n", ipAndPortArray[0], ERROR_FOOTER)
+			continue
 		} else {
 			if len(splitIpArray) == 0 {
 				log.Printf("No ip found: \"%s\".\n%s\n", ipAndPortArray[0], ERROR_FOOTER)
 				continue
 			}
-			scanServerObject.SetIpAddress(splitIpArray[0])
+			//If we have some ip addresses, lets check if they are from version 4.
+			ipv4Found := false
+			for _, value := range splitIpArray {
+				if value.To4() != nil {
+					ipv4Found = true
+					scanServerObject.SetIpAddress(value)
+					break
+				}
+			}
+			if !ipv4Found {
+				log.Printf("No ipv4 found: \"%s\".\n%s\n", ipAndPortArray[0], ERROR_FOOTER)
+				continue
+			}
 		}
 		if splitPort, err := strconv.Atoi(ipAndPortArray[1]); err != nil {
 			log.Printf("Could not parse the port: \"%s\".\n%s\n", ipAndPortArray[1], ERROR_FOOTER)

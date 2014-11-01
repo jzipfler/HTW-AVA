@@ -73,3 +73,10 @@ func TestIfFileIsReadable(t *testing.T) {
 func TestIfFileIsWritable(t *testing.T) {
 	//TODO: Add implementation
 }
+
+// Test the creation of a graphviz file.
+func TestGraphvizGeneration(t *testing.T) {
+	if err := utils.GenerateGraphvizFile("filename", 5, 6); err == nil {
+		t.Error("The error should not be nil because the function is not implemented yet.")
+	}
+}

@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"text/tabwriter"
 )
@@ -94,12 +95,44 @@ func startIndependentNode() {
 	}
 }
 
+// The controller is used to control the independent nodes.
+// He can initialize or shutdown the nodes.
 func startController() {
 	quit := false
 	printMessage("Start current instance as controller.")
 
 	for !quit {
-		quit = shouldRestartProgram()
+		var input string
+		printMessage("Printing main menu.")
+		printMainMenu()
+		fmt.Print("\nEnter ID of the node you would like to send a message.\nInput: ")
+		_, err := fmt.Scanln(&input)
+		if err != nil {
+			printMessage(fmt.Sprintf("Error while reading the input. Quit program...\n%s\n", ERROR_FOOTER))
+			os.Exit(1)
+		}
+		targetId, err := strconv.Atoi(input)
+		if err != nil {
+			printMessage(fmt.Sprintf("No number read. You have to enter the id of the node where you want to sent a message.\n%s\n", ERROR_FOOTER))
+			continue
+		}
+		if targetId == CONTROLLER_MENU_NOTHING {
+			quit = askForProgramRestart()
+			continue
+		}
+		printControlMessageActionMenu()
+		fmt.Print("\nEnter value of the control action you would like to sent.\nInput: ")
+		_, err = fmt.Scanln(&input)
+		if err != nil {
+			printMessage(fmt.Sprintf("Error while reading the input. Quit program...\n%s\n", ERROR_FOOTER))
+			os.Exit(1)
+		}
+		controlAction, err := strconv.Atoi(input)
+		if controlAction == CONTROLLER_MENU_NOTHING {
+			quit = askForProgramRestart()
+			continue
+		}
+		quit = askForProgramRestart()
 	}
 }
 
@@ -136,7 +169,7 @@ func chooseThreeNeighbors() (neighbors map[int]server.NetworkServer) {
 }
 // Asks the user if he want to exit the program.
 // Returns true if and only if the user types y or j. False otherwise.
-func shouldRestartProgram() bool {
+func askForProgramRestart() bool {
 	var input string
 	printMessage("Would you like to exit the program? (y/j/n)")
 	fmt.Print("\nInput: ")
@@ -195,15 +228,14 @@ func initializeLogger(preface string) {
 	}
 }
 
+// This function is used as a wrapper for the logging functinality.
+// If the logger is not initialized, it calls the log methods from the
+// log package.
 func printMessage(message interface{}) {
 	if logger == nil {
 		switch typeValue := message.(type) {
 		case fmt.Stringer:
 			log.Println(typeValue.String())
-		//case string:
-		//	log.Println(message)
-		//case int:
-		//	log.Println(strconv.Itoa(typeValue))
 		default:
 			log.Println(typeValue)
 		}
@@ -211,16 +243,14 @@ func printMessage(message interface{}) {
 		switch typeValue := message.(type) {
 		case fmt.Stringer:
 			logger.Println(typeValue.String())
-		//case string:
-		//	logger.Println(message)
-		//case int:
-		//	logger.Println(strconv.Itoa(typeValue))
 		default:
 			logger.Println(typeValue)
 		}
 	}
 }
 
+// This function prints the content of the logging buffer to the STDOUT.
+// TODO: Decide if it should be printed to console or wrote to a file or simmilar.
 func printAndClearLoggerContent() {
 	if loggingBuffer.Len() != 0 {
 		fmt.Println(&loggingBuffer)
@@ -228,6 +258,8 @@ func printAndClearLoggerContent() {
 	}
 }
 
+// The sinalHanlder function waits for a signal and catches it.
+// If it is a SIGINT, the program exists with return code 0.
 func signalHandler() {
 	c := make(chan os.Signal, 1)
 	// Signal für CTRL-C abfangen...

@@ -84,10 +84,17 @@ func ChooseThreeNeighbors(localNodeId int, allAvailableNodes map[int]server.Netw
 		}
 		return
 	}
+	// Because of
+	var highestId int
+	for key := range allAvailableNodes {
+		if highestId < key {
+			highestId = key
+		}
+	}
 	randomObject := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for len(neighbors) != 3 {
 		var randomNumber int
-		randomNumber = randomObject.Intn(len(allAvailableNodes))
+		randomNumber = randomObject.Intn(highestId + 1)
 		if randomNumber == localNodeId {
 			continue
 		}
@@ -96,6 +103,8 @@ func ChooseThreeNeighbors(localNodeId int, allAvailableNodes map[int]server.Netw
 			// And check here if the node already exists in the neighbors map.
 			if _, ok := neighbors[randomNumber]; !ok {
 				neighbors[randomNumber] = value
+				// Now remove the added node from the map.
+				delete(allAvailableNodes, randomNumber)
 			}
 		}
 	}

@@ -34,7 +34,7 @@ var (
 	nodeListFile  string
 	isController  bool
 	allNodes      map[int]server.NetworkServer
-	neighbor      map[int]server.NetworkServer
+	neighbors     map[int]server.NetworkServer
 	thisNode      server.NetworkServer
 )
 

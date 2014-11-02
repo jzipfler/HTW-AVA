@@ -7,6 +7,7 @@ import (
 	"github.com/jzipfler/htw-ava/filehandler"
 	"github.com/jzipfler/htw-ava/server"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,8 +15,8 @@ import (
 )
 
 const (
-	ERROR_HEADER = "-------------ERROR-------------"
-	ERROR_FOOTER = "^^^^^^^^^^^^^ERROR^^^^^^^^^^^^^"
+	ERROR_HEADER            = "------------------ERROR------------------"
+	ERROR_FOOTER            = "^^^^^^^^^^^^^^^^^^ERROR^^^^^^^^^^^^^^^^^^"
 	MENU_SEPERATOR          = "-----------------------------------------"
 	CONTROL_TYPE_INIT       = 1
 	CONTROL_TYPE_EXIT       = 2
@@ -102,6 +103,37 @@ func startController() {
 	}
 }
 
+// The chooseThreeNeighbors function uses the allNodes map to return
+// another map that contains 3 nodes at the most.
+// It calls os.Exit(1) if only one node is available in the allNodes map.
+func chooseThreeNeighbors() (neighbors map[int]server.NetworkServer) {
+	neighbors = make(map[int]server.NetworkServer, 3)
+	// If there are only 1, 2 or 3 possible neighbors...take them.
+	switch len(allNodes) {
+	case 1:
+		printMessage(fmt.Sprintf("There is only one node in the nodeList. Ther must be at least 2.\n%s\n", ERROR_FOOTER))
+		os.Exit(1)
+	case 2, 3, 4:
+		for key, value := range allNodes {
+			if key != id {
+				neighbors[key] = value
+			}
+		}
+		return
+	}
+	randomObject := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for len(neighbors) != 3 {
+		var randomNumber int
+		randomNumber = randomObject.Intn(len(allNodes))
+		if randomNumber == id {
+			continue
+		}
+		if value, ok := allNodes[randomNumber]; ok {
+			neighbors[randomNumber] = value
+		}
+	}
+	return
+}
 // Asks the user if he want to exit the program.
 // Returns true if and only if the user types y or j. False otherwise.
 func shouldRestartProgram() bool {

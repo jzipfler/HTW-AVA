@@ -7,6 +7,9 @@ message Nachricht {
 		ANWENDUNGSNACHRICHT = 1;
 	}
 	enum KontrollTyp {
+		//Use this option if you want to assign multiple definitions for the same value
+		//For example: "INITIALISIEREN = 0;" && "START = 0;".
+		//option allow_alias = true;
 		INITIALISIEREN = 0;
 		BEENDEN = 1;
 	}
@@ -19,6 +22,7 @@ message Nachricht {
 	required int32 sourcePort = 2;
 	required int32 sourceID = 3;
 	required NachrichtenTyp nachrichtenTyp = 4 [default = ANWENDUNGSNACHRICHT];
-	optional string zeitStempel = 5;
-	repeated string nachrichtenInhalt = 6;
+	optional KontrollTyp kontrollTyp = 5 [default = INITIALISIEREN];
+	required string nachrichtenInhalt = 6;
+	optional string zeitStempel = 7;
 }

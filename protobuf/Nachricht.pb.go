@@ -56,6 +56,9 @@ func (x *Nachricht_NachrichtenTyp) UnmarshalJSON(data []byte) error {
 type Nachricht_KontrollTyp int32
 
 const (
+	// Use this option if you want to assign multiple definitions for the same value
+	// For example: "INITIALISIEREN = 0;" && "START = 0;".
+	// option allow_alias = true;
 	Nachricht_INITIALISIEREN Nachricht_KontrollTyp = 0
 	Nachricht_BEENDEN        Nachricht_KontrollTyp = 1
 )
@@ -91,8 +94,9 @@ type Nachricht struct {
 	SourcePort        *int32                    `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
 	SourceID          *int32                    `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
 	NachrichtenTyp    *Nachricht_NachrichtenTyp `protobuf:"varint,4,req,name=nachrichtenTyp,enum=protobuf.Nachricht_NachrichtenTyp,def=1" json:"nachrichtenTyp,omitempty"`
-	ZeitStempel       *string                   `protobuf:"bytes,5,opt,name=zeitStempel" json:"zeitStempel,omitempty"`
-	NachrichtenInhalt []string                  `protobuf:"bytes,6,rep,name=nachrichtenInhalt" json:"nachrichtenInhalt,omitempty"`
+	KontrollTyp       *Nachricht_KontrollTyp    `protobuf:"varint,5,opt,name=kontrollTyp,enum=protobuf.Nachricht_KontrollTyp,def=0" json:"kontrollTyp,omitempty"`
+	NachrichtenInhalt *string                   `protobuf:"bytes,6,req,name=nachrichtenInhalt" json:"nachrichtenInhalt,omitempty"`
+	ZeitStempel       *string                   `protobuf:"bytes,7,opt,name=zeitStempel" json:"zeitStempel,omitempty"`
 	XXX_unrecognized  []byte                    `json:"-"`
 }
 
@@ -101,6 +105,7 @@ func (m *Nachricht) String() string { return proto.CompactTextString(m) }
 func (*Nachricht) ProtoMessage()    {}
 
 const Default_Nachricht_NachrichtenTyp Nachricht_NachrichtenTyp = Nachricht_ANWENDUNGSNACHRICHT
+const Default_Nachricht_KontrollTyp Nachricht_KontrollTyp = Nachricht_INITIALISIEREN
 
 func (m *Nachricht) GetSourceIP() string {
 	if m != nil && m.SourceIP != nil {
@@ -130,18 +135,25 @@ func (m *Nachricht) GetNachrichtenTyp() Nachricht_NachrichtenTyp {
 	return Default_Nachricht_NachrichtenTyp
 }
 
+func (m *Nachricht) GetKontrollTyp() Nachricht_KontrollTyp {
+	if m != nil && m.KontrollTyp != nil {
+		return *m.KontrollTyp
+	}
+	return Default_Nachricht_KontrollTyp
+}
+
+func (m *Nachricht) GetNachrichtenInhalt() string {
+	if m != nil && m.NachrichtenInhalt != nil {
+		return *m.NachrichtenInhalt
+	}
+	return ""
+}
+
 func (m *Nachricht) GetZeitStempel() string {
 	if m != nil && m.ZeitStempel != nil {
 		return *m.ZeitStempel
 	}
 	return ""
-}
-
-func (m *Nachricht) GetNachrichtenInhalt() []string {
-	if m != nil {
-		return m.NachrichtenInhalt
-	}
-	return nil
 }
 
 func init() {

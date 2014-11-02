@@ -55,12 +55,15 @@ func main() {
 
 	if nodeListFile == "path/to/nodeList.txt" {
 		log.Fatalf("The nodeListFile is required.\n%s\n", ERROR_FOOTER)
-		os.Exit(1)
 	}
 	var readFromNodeListError error
 	allNodes, readFromNodeListError = filehandler.CollectAllFromNodeListFile(nodeListFile)
 	if readFromNodeListError != nil {
 		log.Fatalf("%s\n%s\n", readFromNodeListError.Error(), ERROR_FOOTER)
+	} else {
+		if len(allNodes) == 1 {
+			log.Fatalf("There is only one node in the nodeList. Ther must be at least 2.\n%s\n", ERROR_FOOTER)
+		}
 	}
 
 	go signalHandler() // Handle CTRL-C signals

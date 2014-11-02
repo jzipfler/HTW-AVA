@@ -36,6 +36,13 @@ func (networkServer NetworkServer) Port() int {
 	return networkServer.port
 }
 
+// IpAndPortAsString returns the content of ipAddress and port in the following
+// format: "IP_ADDRESS:PORT".
+// (The " are used to visualize the beginning and end of the format.)
+func (networkServer NetworkServer) IpAndPortAsString() string {
+	return networkServer.IpAddressAsString() + ":" + strconv.Itoa(networkServer.Port())
+}
+
 // String gives a string object which contains a representation of a NetworkServer type.
 func (networkServer NetworkServer) String() string {
 	return networkServer.IpAddressAsString() + ":" + strconv.Itoa(networkServer.Port())

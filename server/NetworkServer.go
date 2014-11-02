@@ -40,6 +40,9 @@ func (networkServer NetworkServer) Port() int {
 // format: "IP_ADDRESS:PORT".
 // (The " are used to visualize the beginning and end of the format.)
 func (networkServer NetworkServer) IpAndPortAsString() string {
+	if networkServer.IpAddress() == nil {
+		return ""
+	}
 	return networkServer.IpAddressAsString() + ":" + strconv.Itoa(networkServer.Port())
 }
 

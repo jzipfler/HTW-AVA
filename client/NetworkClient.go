@@ -33,6 +33,9 @@ func (networkClient NetworkClient) IpAddress() net.IP {
 // Function to return the IP address as string.
 // If the address is not set, nil is returned.
 func (networkClient NetworkClient) IpAddressAsString() string {
+	if networkClient.IpAddress() == nil {
+		return ""
+	}
 	return networkClient.IpAddress().String()
 }
 

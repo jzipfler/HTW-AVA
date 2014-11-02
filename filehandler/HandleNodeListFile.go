@@ -86,6 +86,8 @@ func CollectAllFromNodeListFile(nodeListFile string) (allNodes map[int]server.Ne
 		} else {
 			scanServerObject.SetPort(splitPort)
 		}
+		//TODO: Maybe the usedProtocol should be set in a other way.
+		scanServerObject.SetUsedProtocol("tcp")
 		allNodes[scanId] = scanServerObject
 	}
 	if err := scanner.Err(); err != nil {

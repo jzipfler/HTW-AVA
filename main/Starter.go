@@ -2,12 +2,16 @@ package main
 
 import (
 	"bytes"
+	"code.google.com/p/goprotobuf/proto"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/jzipfler/htw-ava/filehandler"
+	"github.com/jzipfler/htw-ava/protobuf"
 	"github.com/jzipfler/htw-ava/server"
 	"log"
 	"math/rand"
+	"net"
 	"os"
 	"os/signal"
 	"strconv"
@@ -34,10 +38,13 @@ var (
 	ipAddress     string
 	port          int
 	nodeListFile  string
+	graphvizFile  string
 	isController  bool
 	allNodes      map[int]server.NetworkServer
 	neighbors     map[int]server.NetworkServer
 	thisNode      server.NetworkServer
+
+	//targetId      int //TODO: TMP for client / server testing
 )
 
 // The ini function is called before the main function is started.
@@ -45,12 +52,16 @@ var (
 // of the application starts and on what they may depend on.
 func init() {
 	flag.StringVar(&nodeListFile, "nodeList", "path/to/nodeList.txt", "A file where nodes are defined as follows: \"ID IP_ADDR:PORT\"")
+	flag.StringVar(&graphvizFile, "graphvizFile", "path/to/graphviz.{txt,dot}", "A graphviz-dot file written with undirected edges, for example: \"graph G { 1 -- 2; }\"")
 	flag.IntVar(&id, "id", 1, "The if of the actual starting node.")
 	flag.StringVar(&ipAddress, "ipAddress", "127.0.0.1", "The ip address of the actual starting node.")
 	flag.IntVar(&port, "port", 15108, "The port of the actual starting node.")
 	flag.StringVar(&loggingPrefix, "loggingPrefix", "LOGGING --> ", "This can be used to define which prefix the logger should use to print his messages.")
 	flag.StringVar(&logFile, "logFile", "path/to/logfile.txt", "This parameter can be used to print the logging output to the given file.")
 	flag.BoolVar(&isController, "isController", false, "Tell the node if he should act as controller or as independent node.")
+
+	//TODO: TMP for client / server testing
+	//flag.IntVar(&targetId, "targetId", 1, "The id from the server the message should be sent to. Must be != the id.")
 }
 
 // The main function is used when the programm is called / executed.
@@ -84,15 +95,53 @@ func main() {
 	}
 }
 
+// With this function an node that interacts independently gets started.
+// He can be controlled with a controller.
 func startIndependentNode() {
-	quit := false
 	printMessage("Start current instance as independent node.")
 	thisNode = allNodes[id]
 	printMessage("This node has the folowing settings: ")
 	printMessage(thisNode)
 
-	for !quit {
-		quit = shouldRestartProgram()
+	if graphvizFile == "path/to/graphviz.{txt,dot}" {
+		neighbors = chooseThreeNeighbors()
+	} else {
+		var err error
+		neighbors, err = filehandler.CollectNeighborsFromGraphvizFile(graphvizFile)
+		if err != nil {
+			printMessage("An error occured during the reading of the graphviz file: " + err.Error())
+			printMessage("Choose three randam neighbors instead.")
+			neighbors = chooseThreeNeighbors()
+		}
+	}
+
+	printMessage(fmt.Sprintf("The following %d neighbors are chosen: %v", len(neighbors), neighbors))
+
+	protobufChannel := make(chan *protobuf.Nachricht)
+	//A goroutine that receives the protobuf message and reacts to it.
+	go handleReceivedProtobufMessage(protobufChannel)
+	//go func() {
+	//	for {
+	//		message := <-protobufChannel
+	//		printMessage(fmt.Sprintf("Message received:\n\n%s\n\n", message.String()))
+	//		printMessage(message)
+	//	}
+	//}()
+	//Listen to the TCP port
+	listener, err := net.Listen(thisNode.UsedProtocol(), thisNode.IpAndPortAsString())
+	if err != nil {
+		log.Fatal("Error happened: " + err.Error())
+	}
+	printMessage(fmt.Sprintf("Listen on %s://%s", thisNode.UsedProtocol(), thisNode.IpAndPortAsString()))
+
+	for {
+		//listener.Accept() blocks until a message receives
+		if conn, err := listener.Accept(); err == nil {
+			//If err is nil then that means that data is available for us so we take up this data and pass it to a new goroutine
+			go receiveAndParseIncomingProtobufMessageToChannel(conn, protobufChannel)
+		} else {
+			continue
+		}
 	}
 }
 
@@ -133,6 +182,11 @@ func startController() {
 			quit = askForProgramRestart()
 			continue
 		}
+		if err := sendProtobufControlMessage(targetId, controlAction); err != nil {
+			printMessage(fmt.Sprintf("The following error occured while trying to send a control message: %s\n%s\n", err.Error(), ERROR_FOOTER))
+		} else {
+			printMessage(fmt.Sprintf("Message to node with id %d, successfully sent.", targetId))
+		}
 		quit = askForProgramRestart()
 	}
 }
@@ -168,6 +222,135 @@ func chooseThreeNeighbors() (neighbors map[int]server.NetworkServer) {
 	}
 	return
 }
+
+// This function sends a application message (ANWENDUNGSNACHRICHT) to the neighbor with
+// the given targetId. If the id does not exists, it just returns and does nothing.
+func sendProtobufApplicationMessage(targetId int) error {
+	printMessage("Encode protobuf message.")
+	protobufMessage := new(protobuf.Nachricht)
+	protobufMessage.SourceIP = proto.String(thisNode.IpAddressAsString())
+	protobufMessage.SourcePort = proto.Int(thisNode.Port())
+	protobufMessage.SourceID = proto.Int(id)
+	nachrichtenTyp := protobuf.Nachricht_NachrichtenTyp(protobuf.Nachricht_ANWENDUNGSNACHRICHT)
+	protobufMessage.NachrichtenTyp = &nachrichtenTyp
+	protobufMessage.NachrichtenInhalt = proto.String("Nachrichteninhalt")
+	//Protobuf message filled with data. Now marshal it.
+	data, err := proto.Marshal(protobufMessage)
+	if err != nil {
+		return err
+	}
+	// Use the neighbors map for the dial method. And abort when the targetId is not available in the map.
+	if _, ok := neighbors[targetId]; !ok {
+		return errors.New(fmt.Sprintf("The node with the ID %d is not a neighbor of this one. Abort sending.\n%s\n", targetId, ERROR_FOOTER))
+	}
+	conn, err := net.Dial(neighbors[targetId].UsedProtocol(), neighbors[targetId].IpAndPortAsString())
+	if err != nil {
+		return err
+	}
+	n, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	printMessage("Sent " + strconv.Itoa(n) + " bytes")
+	return nil
+}
+
+// This function sends a control message (KONTROLLNACHRICHT) to the node with
+// the given targetId. If the id does not exists, it just returns and does nothing.
+func sendProtobufControlMessage(targetId, controlType int) error {
+	printMessage(fmt.Sprintf("Encode protobuf control message for node : %d.", targetId))
+	protobufMessage := new(protobuf.Nachricht)
+	protobufMessage.SourceIP = proto.String(thisNode.IpAddressAsString())
+	protobufMessage.SourcePort = proto.Int(thisNode.Port())
+	protobufMessage.SourceID = proto.Int(id)
+	nachrichtenTyp := protobuf.Nachricht_NachrichtenTyp(protobuf.Nachricht_KONTROLLNACHRICHT)
+	protobufMessage.NachrichtenTyp = &nachrichtenTyp
+	var kontrollTyp protobuf.Nachricht_KontrollTyp
+	switch controlType {
+	case CONTROL_TYPE_INIT:
+		kontrollTyp = protobuf.Nachricht_KontrollTyp(protobuf.Nachricht_INITIALISIEREN)
+	case CONTROL_TYPE_EXIT:
+		kontrollTyp = protobuf.Nachricht_KontrollTyp(protobuf.Nachricht_BEENDEN)
+	default:
+		printMessage("No valid controlType given. Assume EXIT.")
+		kontrollTyp = protobuf.Nachricht_KontrollTyp(protobuf.Nachricht_BEENDEN)
+	}
+	protobufMessage.KontrollTyp = &kontrollTyp
+	protobufMessage.NachrichtenInhalt = proto.String("Nachrichteninhalt")
+	//Protobuf message filled with data. Now marshal it.
+	data, err := proto.Marshal(protobufMessage)
+	if err != nil {
+		return err
+	}
+	// Use the allNodes map for the dial method. And abort when the targetId is not available in the map.
+	if _, ok := allNodes[targetId]; !ok {
+		return errors.New(fmt.Sprintf("The node with the ID %d is not in the node list. Abort sending.\n%s\n", targetId, ERROR_FOOTER))
+	}
+	conn, err := net.Dial(allNodes[targetId].UsedProtocol(), allNodes[targetId].IpAndPortAsString())
+	if err != nil {
+		return err
+	}
+	n, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	printMessage("Sent " + strconv.Itoa(n) + " bytes")
+	return nil
+}
+
+// This function uses a established connection to parse the data there to the
+// protobuf message. The result gets assigned to the channel.
+func receiveAndParseIncomingProtobufMessageToChannel(conn net.Conn, c chan *protobuf.Nachricht) {
+	printMessage("Incoming message")
+	//Close the connection when the function exits
+	defer conn.Close()
+	//Create a data buffer of type byte slice with capacity of 4096
+	data := make([]byte, 4096)
+	//Read the data waiting on the connection and put it in the data buffer
+	n, err := conn.Read(data)
+	if err != nil {
+		log.Fatal("Error happened: " + err.Error())
+	}
+	fmt.Println("Decoding Protobuf message")
+	//Create an struct pointer of type ProtobufTest.TestMessage struct
+	protodata := new(protobuf.Nachricht)
+	//Convert all the data retrieved into the ProtobufTest.TestMessage struct type
+	err = proto.Unmarshal(data[0:n], protodata)
+	if err != nil {
+		log.Fatal("Error happened: " + err.Error())
+	}
+	//Push the protobuf message into a channel
+	c <- protodata
+}
+
+// This function waits for a message that is sent to the channel and
+// splits the handling of the message depending on the NachrichtenTyp (message type)
+func handleReceivedProtobufMessage(receivingChannel chan *protobuf.Nachricht) {
+	for {
+		// This call blocks until a new message is available.
+		message := <-receivingChannel
+		printMessage(fmt.Sprintf("Message received:\n\n%s\n\n", message.String()))
+		switch message.GetNachrichtenTyp() {
+		case protobuf.Nachricht_KONTROLLNACHRICHT:
+			printMessage("Message is of type KONTROLLNACHRICHT.")
+			handleReceivedControlMessage(message)
+		case protobuf.Nachricht_ANWENDUNGSNACHRICHT:
+			printMessage("Message is of type ANWENDUNGSNACHRICHT.")
+			handleReceivedApplicationMessage(message)
+		default:
+			log.Fatalln("Read a unknown \"NachrichtenTyp\"")
+		}
+	}
+}
+
+func handleReceivedControlMessage(message *protobuf.Nachricht) {
+	//TODO:
+}
+
+func handleReceivedApplicationMessage(message *protobuf.Nachricht) {
+	//TODO:
+}
+
 // Asks the user if he want to exit the program.
 // Returns true if and only if the user types y or j. False otherwise.
 func askForProgramRestart() bool {

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net"
 )
@@ -23,27 +25,26 @@ func StartServer(serverObject NetworkServer, logger *log.Logger) error {
 		externalLogger = logger
 	}
 	var err error
-	serverConnection, err = net.Listen(serverObject.UsedProtocol(), serverObject.String())
+	serverConnection, err = net.Listen(serverObject.UsedProtocol(), serverObject.IpAndPortAsString())
 	if err != nil {
 		serverErrorPrint(err.Error())
 		return err
 	}
-	serverPrint("Server gestartet.")
+	serverPrint(fmt.Sprintf("Listen on %s://%s", serverObject.UsedProtocol(), serverObject.IpAndPortAsString()))
 	return nil
 }
 
 // ReceiveMessages is used to react on a received message from the network.
 // A net.Conn type is returned if something is available.
-func ReceiveMessage() net.Conn {
+func ReceiveMessage() (net.Conn, error) {
 	if serverConnection == nil {
-		log.Fatal("First start server.") //TODO: Besser machen
+		return nil, errors.New("First start server.") //TODO: Besser machen
 	}
 	connection, err := serverConnection.Accept()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	defer connection.Close()
-	return connection
+	return connection, nil
 }
 
 // Stops the server

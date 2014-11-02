@@ -10,11 +10,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"text/tabwriter"
 )
 
 const (
 	ERROR_HEADER = "-------------ERROR-------------"
 	ERROR_FOOTER = "^^^^^^^^^^^^^ERROR^^^^^^^^^^^^^"
+	MENU_SEPERATOR          = "-----------------------------------------"
+	CONTROL_TYPE_INIT       = 1
+	CONTROL_TYPE_EXIT       = 2
+	CONTROLLER_MENU_NOTHING = 0
 )
 
 var (
@@ -120,6 +125,33 @@ func shouldRestartProgram() bool {
 		printMessage("Please only insert y/j for \"YES\" or n for \"NO\".\n" + ERROR_HEADER)
 	}
 	return false
+}
+
+func printMainMenu() {
+	fmt.Println("")
+	tabwriterObject := new(tabwriter.Writer)
+	defer tabwriterObject.Flush()
+	// Format in tab-separated columns with a tab stop of 4.
+	tabwriterObject.Init(os.Stdout, 0, 4, 0, '\t', 0)
+	fmt.Fprintln(tabwriterObject, "ID\tIP Address\tPort\tProtocol")
+	fmt.Fprintln(tabwriterObject, MENU_SEPERATOR)
+	for key, value := range allNodes {
+		fmt.Fprintf(tabwriterObject, "%d\t%s\t%d\t%s\n", key, value.IpAddressAsString(), value.Port(), value.UsedProtocol())
+	}
+	fmt.Fprintf(tabwriterObject, "\n%d\tAbort\n", CONTROLLER_MENU_NOTHING)
+}
+
+func printControlMessageActionMenu() {
+	fmt.Println("")
+	tabwriterObject := new(tabwriter.Writer)
+	defer tabwriterObject.Flush()
+	// Format in tab-separated columns with a tab stop of 4.
+	tabwriterObject.Init(os.Stdout, 0, 4, 0, '\t', 0)
+	fmt.Fprintln(tabwriterObject, "Value\tControl message action")
+	fmt.Fprintln(tabwriterObject, MENU_SEPERATOR)
+	fmt.Fprintf(tabwriterObject, "%d\tInitialize\n", CONTROL_TYPE_INIT)
+	fmt.Fprintf(tabwriterObject, "%d\tShutdown\n", CONTROL_TYPE_EXIT)
+	fmt.Fprintf(tabwriterObject, "\n%d\tAbort\n", CONTROLLER_MENU_NOTHING)
 }
 
 // Creates a new logger which uses a buffer where he collects the messages.

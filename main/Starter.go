@@ -30,19 +30,20 @@ const (
 )
 
 var (
-	loggingBuffer bytes.Buffer
-	logger        *log.Logger
-	loggingPrefix string
-	logFile       string
-	id            int
-	ipAddress     string
-	port          int
-	nodeListFile  string
-	graphvizFile  string
-	isController  bool
-	allNodes      map[int]server.NetworkServer
-	neighbors     map[int]server.NetworkServer
-	thisNode      server.NetworkServer
+	loggingBuffer             bytes.Buffer
+	logger                    *log.Logger
+	loggingPrefix             string
+	logFile                   string
+	id                        int
+	ipAddress                 string
+	port                      int
+	nodeListFile              string
+	graphvizFile              string
+	isController              bool
+	allNodes                  map[int]server.NetworkServer
+	neighbors                 map[int]server.NetworkServer
+	thisNode                  server.NetworkServer
+	messageToAllNeighborsSend bool
 
 	//targetId      int //TODO: TMP for client / server testing
 )
@@ -128,19 +129,16 @@ func startIndependentNode() {
 	//	}
 	//}()
 	//Listen to the TCP port
-	listener, err := net.Listen(thisNode.UsedProtocol(), thisNode.IpAndPortAsString())
-	if err != nil {
+	if err := server.StartServer(thisNode, nil); err != nil {
 		log.Fatal("Error happened: " + err.Error())
 	}
-	printMessage(fmt.Sprintf("Listen on %s://%s", thisNode.UsedProtocol(), thisNode.IpAndPortAsString()))
+	defer server.StopServer()
 
 	for {
-		//listener.Accept() blocks until a message receives
-		if conn, err := listener.Accept(); err == nil {
+		//ReceiveMessage blocks until a message comes in
+		if conn, err := server.ReceiveMessage(); err == nil {
 			//If err is nil then that means that data is available for us so we take up this data and pass it to a new goroutine
 			go receiveAndParseIncomingProtobufMessageToChannel(conn, protobufChannel)
-		} else {
-			continue
 		}
 	}
 }
@@ -216,8 +214,12 @@ func chooseThreeNeighbors() (neighbors map[int]server.NetworkServer) {
 		if randomNumber == id {
 			continue
 		}
+		// Add only the nodes with the id which exists.
 		if value, ok := allNodes[randomNumber]; ok {
-			neighbors[randomNumber] = value
+			// And check here if the node already exists in the neighbors map.
+			if _, ok := neighbors[randomNumber]; !ok {
+				neighbors[randomNumber] = value
+			}
 		}
 	}
 	return
@@ -234,11 +236,13 @@ func sendProtobufApplicationMessage(targetId int) error {
 	nachrichtenTyp := protobuf.Nachricht_NachrichtenTyp(protobuf.Nachricht_ANWENDUNGSNACHRICHT)
 	protobufMessage.NachrichtenTyp = &nachrichtenTyp
 	protobufMessage.NachrichtenInhalt = proto.String("Nachrichteninhalt")
+	protobufMessage.ZeitStempel = proto.String(time.Now().UTC().String())
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {
 		return err
 	}
+	printMessage(fmt.Sprintf("Application message sent:\n\n%s\n\n", protobufMessage.String()))
 	// Use the neighbors map for the dial method. And abort when the targetId is not available in the map.
 	if _, ok := neighbors[targetId]; !ok {
 		return errors.New(fmt.Sprintf("The node with the ID %d is not a neighbor of this one. Abort sending.\n%s\n", targetId, ERROR_FOOTER))
@@ -277,11 +281,13 @@ func sendProtobufControlMessage(targetId, controlType int) error {
 	}
 	protobufMessage.KontrollTyp = &kontrollTyp
 	protobufMessage.NachrichtenInhalt = proto.String("Nachrichteninhalt")
+	protobufMessage.ZeitStempel = proto.String(time.Now().UTC().String())
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {
 		return err
 	}
+	printMessage(fmt.Sprintf("Control message sent:\n\n%s\n\n", protobufMessage.String()))
 	// Use the allNodes map for the dial method. And abort when the targetId is not available in the map.
 	if _, ok := allNodes[targetId]; !ok {
 		return errors.New(fmt.Sprintf("The node with the ID %d is not in the node list. Abort sending.\n%s\n", targetId, ERROR_FOOTER))
@@ -344,11 +350,44 @@ func handleReceivedProtobufMessage(receivingChannel chan *protobuf.Nachricht) {
 }
 
 func handleReceivedControlMessage(message *protobuf.Nachricht) {
-	//TODO:
+	switch message.GetKontrollTyp() {
+	case protobuf.Nachricht_INITIALISIEREN:
+		if !messageToAllNeighborsSend {
+			for key := range neighbors {
+				sendProtobufApplicationMessage(key)
+			}
+		}
+	case protobuf.Nachricht_BEENDEN:
+		for key := range neighbors {
+			sendProtobufControlMessage(key, CONTROL_TYPE_EXIT)
+		}
+		printMessage("")
+		os.Exit(0)
+	default:
+		log.Fatalln("Read a unknown \"KontrollTyp\"")
+	}
 }
 
 func handleReceivedApplicationMessage(message *protobuf.Nachricht) {
-	//TODO:
+	if !messageToAllNeighborsSend {
+		for key := range neighbors {
+			sendProtobufApplicationMessage(key)
+		}
+	}
+
+	// Because the SourceID is of type int32, I have to cast it here.
+	sourceId := int(message.GetSourceID())
+	// Check if the node that sends the message is in the neighbors map.
+	// If not, add him and send him a response.
+	if _, ok := neighbors[sourceId]; !ok {
+		networkServerObject := server.New()
+		networkServerObject.SetClientName(strconv.Itoa(sourceId))
+		networkServerObject.SetIpAddressAsString(message.GetSourceIP())
+		networkServerObject.SetPort(sourceId)
+		networkServerObject.SetUsedProtocol("tcp") //TODO: Maybe a different approach...
+		neighbors[int(message.GetSourceID())] = networkServerObject
+		//sendProtobufApplicationMessage(sourceId)
+	}
 }
 
 // Asks the user if he want to exit the program.

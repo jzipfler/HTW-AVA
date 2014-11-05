@@ -86,7 +86,7 @@ func main() {
 			neighbors = exercise1.ChooseThreeNeighbors(id, allNodes)
 		} else {
 			var err error
-			neighbors, err = filehandler.CollectNeighborsFromGraphvizFile(graphvizFile)
+			neighbors, err = filehandler.CollectNeighborsFromGraphvizFile(graphvizFile, id, allNodes)
 			if err != nil {
 				utils.PrintMessage("An error occured during the reading of the graphviz file: " + err.Error())
 				utils.PrintMessage("Choose three randam neighbors instead.")

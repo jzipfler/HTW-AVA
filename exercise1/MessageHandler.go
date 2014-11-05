@@ -33,7 +33,7 @@ func SendProtobufApplicationMessage(sourceServer, destinationServer server.Netwo
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("Application message sent:\n\n%s\n\n", protobufMessage.String()))
+	utils.PrintMessage(fmt.Sprintf("Application message to node %s sent:\n\n%s\n\n",destinationServer.String(), protobufMessage.String()))
 	conn, err := net.Dial(destinationServer.UsedProtocol(), destinationServer.IpAndPortAsString())
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkSe
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("Control message sent:\n\n%s\n\n", protobufMessage.String()))
+	utils.PrintMessage(fmt.Sprintf("Control message to node %s sent:\n\n%s\n\n", destinationServer.String(), protobufMessage.String()))
 	conn, err := net.Dial(destinationServer.UsedProtocol(), destinationServer.IpAndPortAsString())
 	if err != nil {
 		return err

@@ -5,17 +5,17 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jzipfler/htw-ava/utils"
+	"github.com/jzipfler/htw-ava/graph"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
-	"time"
 )
 
 var (
 	numberOfNodes int
 	numberOfEdges int
+	directedGraph bool
 	filename      string
 )
 
@@ -23,6 +23,7 @@ func init() {
 	flag.StringVar(&filename, "filename", "path/to/generatedGraphviz.txt", "Defines how the file should be named where the generation is stored (default is ./generatedGraphviz.txt.")
 	flag.IntVar(&numberOfNodes, "nodes", 2, "Defines the number of nodes that should be created. There must be more than 2 nodes.")
 	flag.IntVar(&numberOfEdges, "edges", 3, "Defines the number of edges that should be used to connect the nodes. There must be more edges than nodes.")
+	flag.BoolVar(&directedGraph, "directedGraph", false, "Generates a directed instead of a undirected graph.")
 }
 
 func main() {
@@ -31,6 +32,7 @@ func main() {
 		os.Exit(0)
 	}
 	flag.Parse()
+	
 	if numberOfNodes < 2 {
 		log.Fatalln("There must be more than 2 nodes.")
 	}
@@ -58,26 +60,28 @@ func main() {
 			log.Fatalln("Wrong input. Please only insert y for \"YES\" or n for \"NO\".")
 		}
 	}
-	stringBuffer := bytes.NewBufferString("graph G {\n")
-
-	actualNumberOfEdges := 0
-	randomObject := rand.New(rand.NewSource(time.Now().UnixNano()))
-	var sourceNode, destinationNode int
-	for actualNumberOfEdges <= numberOfNodes {
-		sourceNode = randomObject.Intn(numberOfNodes)
-		sourceNode++
-		destinationNode = randomObject.Intn(numberOfNodes)
-		destinationNode++
-		stringBuffer.WriteString(fmt.Sprintf("\t%d--%d;\n", sourceNode, destinationNode))
-		actualNumberOfEdges++
+	
+	graphObject := graph.New(numberOfNodes,numberOfEdges)
+	var graphString string
+	var err error
+	if directedGraph {
+		graphString, err = graphObject.DirectedGraphAsDotLanguageString()
+	} else {
+		graphString, err = graphObject.UndirectedGraphAsDotLanguageString()
 	}
-	stringBuffer.WriteString("}")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Println(graphString)
+	
+	stringBuffer := bytes.NewBufferString(graphString)
+
 	//Writes the files with 0644 Unix permissions.
 	ioutil.WriteFile(filename, stringBuffer.Bytes(), 0644)
 	log.Println("File successfully written.")
 	log.Println("Now try to generate a jpg file from the generated graphviz file.")
-	cmd := exec.Command("dot", "-Tjpg", filename, "-o generatedGraphviz.jpg")
-	err := cmd.Start()
+	cmd := exec.Command("dot", "-Tjpg", filename, "-ogeneratedGraphviz.jpg")
+	err = cmd.Start()
 	if err != nil {
 		log.Fatal(err)
 	}

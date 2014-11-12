@@ -19,12 +19,22 @@ func New(numberOfNodes, numberOfEdges int) Graph {
 	return Graph{numberOfNodes, numberOfEdges}
 }
 
+func (graph Graph) NumberOfNodes() int {
+	return graph.nodes
+}
+
+func (graph Graph) NumberOfEdges() int {
+	return graph.edges
+}
+
 func (graph *Graph) SetNumberOfNodes(numberOfNodes int) {
+	// The test for -1 is done in isEdgePossible()
 	graph.nodes = numberOfNodes
 }
 
 func (graph *Graph) SetNumberOfEdges(numberOfEdges int) {
-
+	// The test for -1 is done in isEdgePossible()
+	graph.edges = numberOfEdges
 }
 
 func (graph *Graph) Clear() {
@@ -39,6 +49,12 @@ func (graph Graph) String() string {
 func (graph Graph) UndirectedGraph() (adjacencyMatrix [][]int, err error) {
 	if graph.nodes == 0 || graph.edges == 0 {
 		return nil, errors.New("Nodes and edges must not be 0.")
+	}
+	if graph.nodes < 0 {
+		return nil, errors.New("Node graph can be generated with a negative amount of nodes.")
+	}
+	if graph.edges < 0 {
+		return nil, errors.New("No graph can be generated with a negative amount of edges.")
 	}
 	actualNumberOfEdges := 0
 	randomObject := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -112,6 +128,12 @@ func (graph Graph) UndirectedGraphAsDotLanguageString() (string, error) {
 func (graph Graph) DirectedGraph() (adjacencyMatrix [][]int, err error) {
 	if graph.nodes == 0 || graph.edges == 0 {
 		return nil, errors.New("Nodes and edges must not be 0.")
+	}
+	if graph.nodes < 0 {
+		return nil, errors.New("Node graph can be generated with a negative amount of nodes.")
+	}
+	if graph.edges < 0 {
+		return nil, errors.New("No graph can be generated with a negative amount of edges.")
 	}
 	actualNumberOfEdges := 0
 	randomObject := rand.New(rand.NewSource(time.Now().UnixNano()))

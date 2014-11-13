@@ -33,7 +33,6 @@ func SendProtobufApplicationMessage(sourceServer, destinationServer server.Netwo
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("Application message to node %s sent:\n\n%s\n\n",destinationServer.String(), protobufMessage.String()))
 	conn, err := net.Dial(destinationServer.UsedProtocol(), destinationServer.IpAndPortAsString())
 	if err != nil {
 		return err
@@ -42,6 +41,7 @@ func SendProtobufApplicationMessage(sourceServer, destinationServer server.Netwo
 	if err != nil {
 		return err
 	}
+	utils.PrintMessage(fmt.Sprintf("Application message from %s to %s sent:\n\n%s\n\n",sourceServer.String(), destinationServer.String(), protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
 }

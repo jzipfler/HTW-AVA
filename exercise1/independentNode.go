@@ -43,7 +43,7 @@ func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[
 
 	protobufChannel := make(chan *protobuf.Nachricht)
 	//A goroutine that receives the protobuf message and reacts to it.
-	go handleReceivedProtobufMessage(protobufChannel)
+	go handleReceivedProtobufMessage(localNode,protobufChannel)
 	//go func() {
 	//	for {
 	//		message := <-protobufChannel
@@ -113,11 +113,11 @@ func ChooseThreeNeighbors(localNodeId int, allAvailableNodes map[int]server.Netw
 
 // This function waits for a message that is sent to the channel and
 // splits the handling of the message depending on the NachrichtenTyp (message type)
-func handleReceivedProtobufMessage(receivingChannel chan *protobuf.Nachricht) {
+func handleReceivedProtobufMessage(localNode server.NetworkServer, receivingChannel chan *protobuf.Nachricht) {
 	for {
 		// This call blocks until a new message is available.
 		message := <-receivingChannel
-		utils.PrintMessage(fmt.Sprintf("Message received:\n\n%s\n\n", message.String()))
+		utils.PrintMessage(fmt.Sprintf("Message on %s received:\n\n%s\n\n", localNode.String(), message.String()))
 		switch message.GetNachrichtenTyp() {
 		case protobuf.Nachricht_KONTROLLNACHRICHT:
 			utils.PrintMessage("Message is of type KONTROLLNACHRICHT.")

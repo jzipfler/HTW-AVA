@@ -38,20 +38,13 @@ func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[
 	allNodes = allAvailableNodes
 	neighbors = neighborNodes
 	localNode = allAvailableNodes[localNodeId]
+	messageToAllNeighborsSent = false
 	utils.PrintMessage("This node has the folowing settings: ")
 	utils.PrintMessage(localNode)
 
 	protobufChannel := make(chan *protobuf.Nachricht)
 	//A goroutine that receives the protobuf message and reacts to it.
-	go handleReceivedProtobufMessage(protobufChannel)
-	//go func() {
-	//	for {
-	//		message := <-protobufChannel
-	//		utils.PrintMessage(fmt.Sprintf("Message received:\n\n%s\n\n", message.String()))
-	//		utils.PrintMessage(message)
-	//	}
-	//}()
-	//Listen to the TCP port
+	go handleReceivedProtobufMessage(localNode,protobufChannel)
 	if err := server.StartServer(localNode, nil); err != nil {
 		log.Fatal("Error happened: " + err.Error())
 	}
@@ -113,11 +106,11 @@ func ChooseThreeNeighbors(localNodeId int, allAvailableNodes map[int]server.Netw
 
 // This function waits for a message that is sent to the channel and
 // splits the handling of the message depending on the NachrichtenTyp (message type)
-func handleReceivedProtobufMessage(receivingChannel chan *protobuf.Nachricht) {
+func handleReceivedProtobufMessage(localNode server.NetworkServer, receivingChannel chan *protobuf.Nachricht) {
 	for {
 		// This call blocks until a new message is available.
 		message := <-receivingChannel
-		utils.PrintMessage(fmt.Sprintf("Message received:\n\n%s\n\n", message.String()))
+		utils.PrintMessage(fmt.Sprintf("Message on %s received:\n\n%s\n\n", localNode.String(), message.String()))
 		switch message.GetNachrichtenTyp() {
 		case protobuf.Nachricht_KONTROLLNACHRICHT:
 			utils.PrintMessage("Message is of type KONTROLLNACHRICHT.")
@@ -138,10 +131,11 @@ func handleReceivedControlMessage(message *protobuf.Nachricht) {
 			for key, value := range neighbors {
 				SendProtobufApplicationMessage(localNode, value, key)
 			}
+			messageToAllNeighborsSent = true
 		}
 	case protobuf.Nachricht_BEENDEN:
-		for key, value := range neighbors {
-			SendProtobufControlMessage(localNode, value, key, utils.CONTROL_TYPE_EXIT)
+		for id, destinationNode := range neighbors {
+			SendProtobufControlMessage(localNode, destinationNode, id, utils.CONTROL_TYPE_EXIT)
 		}
 		utils.PrintMessage("")
 		os.Exit(0)
@@ -155,6 +149,7 @@ func handleReceivedApplicationMessage(message *protobuf.Nachricht) {
 		for key, value := range neighbors {
 			SendProtobufApplicationMessage(localNode, value, key)
 		}
+		messageToAllNeighborsSent = true
 	}
 
 	// Because the SourceID is of type int32, I have to cast it here.

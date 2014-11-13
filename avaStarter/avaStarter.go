@@ -72,7 +72,7 @@ func main() {
 	}
 
 	go signalHandler() // Handle CTRL-C signals
-	utils.InitializeLogger(logFile, loggingPrefix)
+	utils.InitializeLogger(logFile, fmt.Sprintf("%s(%d)", loggingPrefix,id))
 
 	if isController {
 		controllerNode := server.New()

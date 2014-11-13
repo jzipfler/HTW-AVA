@@ -19,7 +19,7 @@ func SendProtobufApplicationMessage(sourceServer, destinationServer server.Netwo
 	if destinationServer.IpAddressAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server has no ip address or port.\n%s\n", destinationServer.IpAndPortAsString(), utils.ERROR_FOOTER))
 	}
-	utils.PrintMessage("Encode protobuf message.")
+	utils.PrintMessage(fmt.Sprintf("Encode protobuf application message for node with IP:PORT : %s.", destinationServer.IpAndPortAsString()))
 	protobufMessage := new(protobuf.Nachricht)
 	protobufMessage.SourceIP = proto.String(sourceServer.IpAddressAsString())
 	protobufMessage.SourcePort = proto.Int(sourceServer.Port())
@@ -52,7 +52,7 @@ func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkSe
 	if destinationServer.IpAddressAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server has no ip address or port.\n%s\n", destinationServer.IpAndPortAsString(), utils.ERROR_FOOTER))
 	}
-	utils.PrintMessage(fmt.Sprintf("Encode protobuf control message for node with IP:PORT : %s.", destinationServer.IpAddressAsString()))
+	utils.PrintMessage(fmt.Sprintf("Encode protobuf control message for node with IP:PORT : %s.", destinationServer.IpAndPortAsString()))
 	protobufMessage := new(protobuf.Nachricht)
 	protobufMessage.SourceIP = proto.String(sourceServer.IpAddressAsString())
 	protobufMessage.SourcePort = proto.Int(sourceServer.Port())
@@ -77,7 +77,7 @@ func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkSe
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("Control message to node %s sent:\n\n%s\n\n", destinationServer.String(), protobufMessage.String()))
+	utils.PrintMessage(fmt.Sprintf("Control message from %s to %s sent:\n\n%s\n\n", sourceServer.String(), destinationServer.String(), protobufMessage.String()))
 	conn, err := net.Dial(destinationServer.UsedProtocol(), destinationServer.IpAndPortAsString())
 	if err != nil {
 		return err

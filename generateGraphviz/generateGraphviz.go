@@ -80,7 +80,9 @@ func main() {
 	stringBuffer := bytes.NewBufferString(graphString)
 
 	//Writes the files with 0644 Unix permissions.
-	ioutil.WriteFile(filename, stringBuffer.Bytes(), 0644)
+	if err := ioutil.WriteFile(filename, stringBuffer.Bytes(), 0644); err != nil {
+		log.Fatalln(err)
+	}
 	log.Println("File successfully written.")
 
 	if !skipImageCreation {

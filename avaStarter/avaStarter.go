@@ -3,14 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/jzipfler/htw-ava/exercise1"
-	"github.com/jzipfler/htw-ava/filehandler"
-	"github.com/jzipfler/htw-ava/server"
-	"github.com/jzipfler/htw-ava/utils"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jzipfler/htw-ava/exercise1"
+	"github.com/jzipfler/htw-ava/filehandler"
+	"github.com/jzipfler/htw-ava/server"
+	"github.com/jzipfler/htw-ava/utils"
 )
 
 var (
@@ -20,6 +21,7 @@ var (
 	ipAddress                 string
 	port                      int
 	messageContent            string
+	rumor                     string
 	nodeListFile              string
 	graphvizFile              string
 	isController              bool
@@ -39,9 +41,8 @@ func init() {
 	flag.IntVar(&id, "id", 1, "The if of the actual starting node.")
 	flag.StringVar(&ipAddress, "ipAddress", "127.0.0.1", "The ip address of the actual starting node.")
 	flag.IntVar(&port, "port", 15100, "The port of the actual starting node.")
-	// Defining two flags that do the same but have different names.
-	flag.StringVar(&messageContent, "messageContent", "This is a message", "The message content is the string that is sent to the other nodes.")
-	flag.StringVar(&messageContent, "rumor", "The earth is a disc.", "The rumor that is sent to the other nodes.")
+	flag.StringVar(&messageContent, "messageContent", "The earth is a disc.", "The message content is the string that is sent to the other nodes.")
+	flag.StringVar(&rumor, "rumor", "The earth is a disc.", "The rumor that is sent to the other nodes.")
 	flag.StringVar(&loggingPrefix, "loggingPrefix", "LOGGING --> ", "This can be used to define which prefix the logger should use to print his messages.")
 	flag.StringVar(&logFile, "logFile", "path/to/logfile.txt", "This parameter can be used to print the logging output to the given file.")
 	flag.BoolVar(&isController, "isController", false, "Tell the node if he should act as controller or as independent node.")
@@ -70,9 +71,12 @@ func main() {
 			log.Fatalf("There is only one node in the nodeList. Ther must be at least 2.\n%s\n", utils.ERROR_FOOTER)
 		}
 	}
+	if rumor != "The earth is a disc." {
+		messageContent = rumor
+	}
 
 	go signalHandler() // Handle CTRL-C signals
-	utils.InitializeLogger(logFile, fmt.Sprintf("%s(%d)", loggingPrefix,id))
+	utils.InitializeLogger(logFile, fmt.Sprintf("%s(%d)", loggingPrefix, id))
 
 	if isController {
 		controllerNode := server.New()

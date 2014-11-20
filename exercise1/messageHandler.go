@@ -1,21 +1,22 @@
 package exercise1
 
 import (
-	"code.google.com/p/goprotobuf/proto"
 	"errors"
 	"fmt"
-	"github.com/jzipfler/htw-ava/protobuf"
-	"github.com/jzipfler/htw-ava/server"
-	"github.com/jzipfler/htw-ava/utils"
 	"log"
 	"net"
 	"strconv"
 	"time"
+
+	"code.google.com/p/goprotobuf/proto"
+	"github.com/jzipfler/htw-ava/protobuf"
+	"github.com/jzipfler/htw-ava/server"
+	"github.com/jzipfler/htw-ava/utils"
 )
 
 // This function sends a application message (ANWENDUNGSNACHRICHT) to the neighbor with
 // the given targetId. If the id does not exists, it just returns and does nothing.
-func SendProtobufApplicationMessage(sourceServer, destinationServer server.NetworkServer, destnationServerId int) error {
+func SendProtobufApplicationMessage(sourceServer, destinationServer server.NetworkServer, destnationServerId int, messageContent string) error {
 	if destinationServer.IpAddressAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server has no ip address or port.\n%s\n", destinationServer.IpAndPortAsString(), utils.ERROR_FOOTER))
 	}
@@ -26,7 +27,7 @@ func SendProtobufApplicationMessage(sourceServer, destinationServer server.Netwo
 	protobufMessage.SourceID = proto.Int(destnationServerId)
 	nachrichtenTyp := protobuf.Nachricht_NachrichtenTyp(protobuf.Nachricht_ANWENDUNGSNACHRICHT)
 	protobufMessage.NachrichtenTyp = &nachrichtenTyp
-	protobufMessage.NachrichtenInhalt = proto.String("Nachrichteninhalt")
+	protobufMessage.NachrichtenInhalt = proto.String(messageContent)
 	protobufMessage.ZeitStempel = proto.String(time.Now().UTC().String())
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
@@ -41,14 +42,14 @@ func SendProtobufApplicationMessage(sourceServer, destinationServer server.Netwo
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("Application message from %s to %s sent:\n\n%s\n\n",sourceServer.String(), destinationServer.String(), protobufMessage.String()))
+	utils.PrintMessage(fmt.Sprintf("Application message from %s to %s sent:\n\n%s\n\n", sourceServer.String(), destinationServer.String(), protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
 }
 
 // This function sends a control message (KONTROLLNACHRICHT) to the node with
 // the given targetId. If the id does not exists, it just returns and does nothing.
-func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkServer, destnationServerId, controlType int) error {
+func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkServer, destnationServerId, controlType int, messageContent string) error {
 	if destinationServer.IpAddressAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server has no ip address or port.\n%s\n", destinationServer.IpAndPortAsString(), utils.ERROR_FOOTER))
 	}
@@ -70,7 +71,7 @@ func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkSe
 		kontrollTyp = protobuf.Nachricht_KontrollTyp(protobuf.Nachricht_BEENDEN)
 	}
 	protobufMessage.KontrollTyp = &kontrollTyp
-	protobufMessage.NachrichtenInhalt = proto.String("Nachrichteninhalt")
+	protobufMessage.NachrichtenInhalt = proto.String(messageContent)
 	protobufMessage.ZeitStempel = proto.String(time.Now().UTC().String())
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)

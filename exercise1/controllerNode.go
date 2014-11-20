@@ -2,16 +2,17 @@ package exercise1
 
 import (
 	"fmt"
-	"github.com/jzipfler/htw-ava/server"
-	"github.com/jzipfler/htw-ava/utils"
 	"os"
 	"strconv"
 	"text/tabwriter"
+
+	"github.com/jzipfler/htw-ava/server"
+	"github.com/jzipfler/htw-ava/utils"
 )
 
 // The controller is used to control the independent nodes.
 // He can initialize or shutdown the nodes.
-func StartController(localNode server.NetworkServer, allNodes map[int]server.NetworkServer) {
+func StartController(localNode server.NetworkServer, allNodes map[int]server.NetworkServer, messageContent string) {
 	if allNodes == nil {
 		utils.PrintMessage(fmt.Sprintf("To start the controller, there must be a node map which is currently nil.\n%s\n", utils.ERROR_FOOTER))
 		os.Exit(1)
@@ -50,7 +51,7 @@ func StartController(localNode server.NetworkServer, allNodes map[int]server.Net
 			quit = askForProgramRestart()
 			continue
 		}
-		if err := SendProtobufControlMessage(localNode, allNodes[targetId], targetId, controlAction); err != nil {
+		if err := SendProtobufControlMessage(localNode, allNodes[targetId], targetId, controlAction, messageContent); err != nil {
 			utils.PrintMessage(fmt.Sprintf("The following error occured while trying to send a control message: %s\n%s\n", err.Error(), utils.ERROR_FOOTER))
 		} else {
 			utils.PrintMessage(fmt.Sprintf("Message to node with id %d, successfully sent.", targetId))

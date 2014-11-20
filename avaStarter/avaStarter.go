@@ -84,7 +84,7 @@ func main() {
 		controllerNode.SetIpAddressAsString(ipAddress)
 		controllerNode.SetPort(port)
 		controllerNode.SetUsedProtocol("tcp")
-		exercise1.StartController(controllerNode, allNodes)
+		exercise1.StartController(controllerNode, allNodes, messageContent)
 	} else {
 		if graphvizFile == "path/to/graphviz.{txt,dot}" {
 			neighbors = exercise1.ChooseThreeNeighbors(id, allNodes)

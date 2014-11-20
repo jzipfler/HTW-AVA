@@ -1,15 +1,18 @@
 package exercise1
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/jzipfler/htw-ava/protobuf"
-	"github.com/jzipfler/htw-ava/server"
-	"github.com/jzipfler/htw-ava/utils"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/jzipfler/htw-ava/protobuf"
+	"github.com/jzipfler/htw-ava/server"
+	"github.com/jzipfler/htw-ava/utils"
 )
 
 var (
@@ -17,6 +20,8 @@ var (
 	allNodes                  map[int]server.NetworkServer
 	neighbors                 map[int]server.NetworkServer
 	messageToAllNeighborsSent bool
+	rumors                    []int
+	beliveInARumorThreshold   int // The number of nodes from which the rumor must be heared before the node belives in it.
 )
 
 // With this function an node that interacts independently gets started.
@@ -38,13 +43,15 @@ func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[
 	allNodes = allAvailableNodes
 	neighbors = neighborNodes
 	localNode = allAvailableNodes[localNodeId]
+	rumors = make([]int, len(allNodes), len(allNodes))
+	beliveInARumorThreshold = 2
 	messageToAllNeighborsSent = false
 	utils.PrintMessage("This node has the folowing settings: ")
 	utils.PrintMessage(localNode)
 
 	protobufChannel := make(chan *protobuf.Nachricht)
 	//A goroutine that receives the protobuf message and reacts to it.
-	go handleReceivedProtobufMessage(localNode,protobufChannel)
+	go handleReceivedProtobufMessage(localNode, protobufChannel)
 	if err := server.StartServer(localNode, nil); err != nil {
 		log.Fatal("Error happened: " + err.Error())
 	}
@@ -111,6 +118,15 @@ func handleReceivedProtobufMessage(localNode server.NetworkServer, receivingChan
 		// This call blocks until a new message is available.
 		message := <-receivingChannel
 		utils.PrintMessage(fmt.Sprintf("Message on %s received:\n\n%s\n\n", localNode.String(), message.String()))
+		// TODO: Place for the last part of the exercise (RUMORS)
+		rumors[int(message.GetSourceID())]++
+		if rumors[int(message.GetSourceID())] == beliveInARumorThreshold {
+			filename := localNode.ClientName() + "_belives.txt"
+			if err := utils.CheckIfFileExists(filename); err == nil {
+				stringBuffer := bytes.NewBufferString(message.GetNachrichtenInhalt())
+				ioutil.WriteFile(filename, stringBuffer.Bytes(), 0644)
+			}
+		}
 		switch message.GetNachrichtenTyp() {
 		case protobuf.Nachricht_KONTROLLNACHRICHT:
 			utils.PrintMessage("Message is of type KONTROLLNACHRICHT.")
@@ -129,13 +145,13 @@ func handleReceivedControlMessage(message *protobuf.Nachricht) {
 	case protobuf.Nachricht_INITIALISIEREN:
 		if !messageToAllNeighborsSent {
 			for key, value := range neighbors {
-				SendProtobufApplicationMessage(localNode, value, key)
+				SendProtobufApplicationMessage(localNode, value, key, message.GetNachrichtenInhalt())
 			}
 			messageToAllNeighborsSent = true
 		}
 	case protobuf.Nachricht_BEENDEN:
 		for id, destinationNode := range neighbors {
-			SendProtobufControlMessage(localNode, destinationNode, id, utils.CONTROL_TYPE_EXIT)
+			SendProtobufControlMessage(localNode, destinationNode, id, utils.CONTROL_TYPE_EXIT, message.GetNachrichtenInhalt())
 		}
 		utils.PrintMessage("")
 		os.Exit(0)
@@ -147,7 +163,7 @@ func handleReceivedControlMessage(message *protobuf.Nachricht) {
 func handleReceivedApplicationMessage(message *protobuf.Nachricht) {
 	if !messageToAllNeighborsSent {
 		for key, value := range neighbors {
-			SendProtobufApplicationMessage(localNode, value, key)
+			SendProtobufApplicationMessage(localNode, value, key, message.GetNachrichtenInhalt())
 		}
 		messageToAllNeighborsSent = true
 	}

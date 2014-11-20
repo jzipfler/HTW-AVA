@@ -70,33 +70,27 @@ func (graph Graph) UndirectedGraph() (adjacencyMatrix [][]int, err error) {
 		adjacencyMatrix[index] = make([]int, graph.nodes)
 	}
 	for index := range adjacencyMatrix {
-		destinationNode = randomObject.Intn(graph.nodes)
-		possible, err := graph.isEdgePossible(index, destinationNode, adjacencyMatrix)
-		if err != nil {
-			//log.Println(err)
+		if index == 0 {
+			continue
 		}
-		for !possible {
-			for destinationNode == index {
-				destinationNode = randomObject.Intn(graph.nodes)
-			}
-			possible, err = graph.isEdgePossible(index, destinationNode, adjacencyMatrix)
-			if err != nil {
-				destinationNode = randomObject.Intn(graph.nodes)
-				//log.Println(err)
-			}
+		destinationNode = randomObject.Intn(index)
+		if _, err := graph.isEdgePossible(index, destinationNode, adjacencyMatrix); err != nil {
+			//log.Println(err)
+			continue
 		}
 		if err := graph.addUndirectedEdge(index, destinationNode, adjacencyMatrix); err != nil {
 			log.Fatalln(err)
 		}
 		actualNumberOfEdges++
 	}
-	for ; actualNumberOfEdges <= graph.edges; actualNumberOfEdges++ {
+	for actualNumberOfEdges < graph.edges {
 		sourceNode := randomObject.Intn(graph.nodes)
 		for destinationNode := range adjacencyMatrix[sourceNode] {
 			if possible, _ := graph.isEdgePossible(sourceNode, destinationNode, adjacencyMatrix); possible {
 				if err := graph.addUndirectedEdge(sourceNode, destinationNode, adjacencyMatrix); err != nil {
 					log.Fatalln(err)
 				}
+				actualNumberOfEdges++
 			}
 		}
 	}
@@ -149,33 +143,27 @@ func (graph Graph) DirectedGraph() (adjacencyMatrix [][]int, err error) {
 		adjacencyMatrix[index] = make([]int, graph.nodes)
 	}
 	for index := range adjacencyMatrix {
-		destinationNode = randomObject.Intn(graph.nodes)
-		possible, err := graph.isEdgePossible(index, destinationNode, adjacencyMatrix)
-		if err != nil {
-			//log.Println(err)
+		if index == 0 {
+			continue
 		}
-		for !possible {
-			for destinationNode == index {
-				destinationNode = randomObject.Intn(graph.nodes)
-			}
-			possible, err = graph.isEdgePossible(index, destinationNode, adjacencyMatrix)
-			if err != nil {
-				destinationNode = randomObject.Intn(graph.nodes)
-				//log.Println(err)
-			}
+		destinationNode = randomObject.Intn(index)
+		if _, err := graph.isEdgePossible(index, destinationNode, adjacencyMatrix); err != nil {
+			//log.Println(err)
+			continue
 		}
 		if err := graph.addDirectedEdge(index, destinationNode, adjacencyMatrix); err != nil {
 			log.Fatalln(err)
 		}
 		actualNumberOfEdges++
 	}
-	for ; actualNumberOfEdges <= graph.edges; actualNumberOfEdges++ {
+	for actualNumberOfEdges <= graph.edges {
 		sourceNode := randomObject.Intn(graph.nodes)
 		for destinationNode := range adjacencyMatrix[sourceNode] {
 			if possible, _ := graph.isEdgePossible(sourceNode, destinationNode, adjacencyMatrix); possible {
 				if err := graph.addDirectedEdge(sourceNode, destinationNode, adjacencyMatrix); err != nil {
 					log.Fatalln(err)
 				}
+				actualNumberOfEdges++
 			}
 		}
 	}

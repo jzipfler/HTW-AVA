@@ -23,8 +23,8 @@ var (
 
 func init() {
 	flag.StringVar(&filename, "filename", "path/to/generatedGraphviz.txt", "Defines how the file should be named where the generation is stored (default is ./generatedGraphviz.txt.")
-	flag.IntVar(&numberOfNodes, "nodes", 2, "Defines the number of nodes that should be created. There must be more than 2 nodes.")
-	flag.IntVar(&numberOfEdges, "edges", 3, "Defines the number of edges that should be used to connect the nodes. There must be more edges than nodes.")
+	flag.IntVar(&numberOfNodes, "nodes", 4, "Defines the number of nodes that should be created. There must be more than 2 nodes.")
+	flag.IntVar(&numberOfEdges, "edges", 5, "Defines the number of edges that should be used to connect the nodes. There must be more edges than nodes.")
 	flag.BoolVar(&directedGraph, "directedGraph", false, "Generates a directed instead of a undirected graph.")
 	flag.BoolVar(&skipImageCreation, "skipImageCreation", false, "Only generates the text file and skips the image creation.")
 }
@@ -36,8 +36,8 @@ func main() {
 	}
 	flag.Parse()
 
-	if numberOfNodes < 2 {
-		log.Fatalln("There must be more than 2 nodes.")
+	if numberOfNodes <= 3 {
+		log.Fatalln("There must be more than 3 nodes.")
 	}
 	if numberOfEdges <= numberOfNodes {
 		log.Fatalln("The number of edges must be greater than the number of nodes.")

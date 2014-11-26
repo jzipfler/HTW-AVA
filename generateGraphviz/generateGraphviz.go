@@ -45,7 +45,7 @@ func main() {
 	if filename == "path/to/generatedGraphviz.txt" {
 		filename = "generatedGraphviz.txt"
 	}
-	if err := utils.CheckIfFileExists(filename); err == nil {
+	if exists := utils.CheckIfFileExists(filename); exists {
 		var input string
 		fmt.Printf("The file \"%s\" exists. Would you like to overwrite it (y|n)?\n", filename)
 		fmt.Print("\nInput: ")

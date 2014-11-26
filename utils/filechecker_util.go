@@ -7,25 +7,26 @@ import (
 
 // This method takes the string and checks if the string points to a file
 // that exists.
-func CheckIfFileExists(pathToFile string) error {
-	if file, err := os.Stat(pathToFile); err == nil {
-		if file.IsDir() {
-			return errors.New("The given path belongs to a folder.")
-		}
-		return nil
+func CheckIfFileExists(pathToFile string) bool {
+	if _, err := os.Stat(pathToFile); err == nil {
+		//Not needed anymore
+		//if file.IsDir() {
+		//	return true
+		//}
+		return true
 	}
-	return errors.New("The given file does not exist.")
+	return false
 }
 
 // This method checks if the file that is given is readable.
-func CheckIfFileIsReadable(pathToFile string) error {
-	if err := CheckIfFileExists(pathToFile); err != nil {
-		return err
+func CheckIfFileIsReadable(pathToFile string) (bool, error) {
+	if exists := CheckIfFileExists(pathToFile); !exists {
+		return false, errors.New("The file does not exists.")
 	}
 	if _, err := os.Open(pathToFile); !os.IsPermission(err) {
-		return nil
+		return true, nil
 	}
-	return errors.New("The user does not have permissions to read the given file")
+	return false, nil
 }
 
 func CheckIfFileIsWritebale(pathToFile string) error {

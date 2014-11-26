@@ -3,21 +3,22 @@ package filehandler
 import (
 	"bufio"
 	"errors"
-	"github.com/jzipfler/htw-ava/server"
-	"github.com/jzipfler/htw-ava/utils"
 	"log"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/jzipfler/htw-ava/server"
+	"github.com/jzipfler/htw-ava/utils"
 )
 
 // This function tries to read the content of the file with the given name
 // as parameter. If it is not readable or nothing can be parsed, the function
 // returns nil for the map and sets the value for the error type.
 func CollectAllFromNodeListFile(nodeListFile string) (allNodes map[int]server.NetworkServer, err error) {
-	if err := utils.CheckIfFileIsReadable(nodeListFile); err != nil {
-		return nil, err
+	if readable, _ := utils.CheckIfFileIsReadable(nodeListFile); !readable {
+		return nil, errors.New("The given file is not readable.")
 	}
 	nodeListFileObject, _ := os.Open(nodeListFile)
 	defer nodeListFileObject.Close()

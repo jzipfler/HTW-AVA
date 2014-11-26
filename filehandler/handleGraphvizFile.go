@@ -1,14 +1,15 @@
 package filehandler
 
 import (
+	"bufio"
 	"errors"
-	"github.com/jzipfler/htw-ava/server"
-	"github.com/jzipfler/htw-ava/utils"
+	"log"
 	"os"
 	"strconv"
-	"log"
 	"strings"
-	"bufio"
+
+	"github.com/jzipfler/htw-ava/server"
+	"github.com/jzipfler/htw-ava/utils"
 )
 
 func CollectNeighborsFromGraphvizFile(filename string, ownId int, allNodes map[int]server.NetworkServer) (neighbors map[int]server.NetworkServer, err error) {
@@ -21,8 +22,8 @@ func CollectNeighborsFromGraphvizFile(filename string, ownId int, allNodes map[i
 	if len(allNodes) <= 1 {
 		return nil, errors.New("There are not enough nodes in the allNodes map.")
 	}
-	if err := utils.CheckIfFileIsReadable(filename); err != nil {
-		return nil, err
+	if readable, _ := utils.CheckIfFileIsReadable(filename); !readable {
+		return nil, errors.New("The given file is not readable.")
 	}
 	graphvizFileObject, _ := os.Open(filename)
 	defer graphvizFileObject.Close()
@@ -39,24 +40,24 @@ func CollectNeighborsFromGraphvizFile(filename string, ownId int, allNodes map[i
 			//log.Printf("Kommentar gelesen: \"%s\"\n", line)
 			continue
 		}
-		if strings.Contains(line,"graph") {
+		if strings.Contains(line, "graph") {
 			//log.Printf("Graph definition read: \"%s\"\n", line)
 			continue
 		}
-		if strings.Contains(line,"{") || strings.Contains(line,"}") {
+		if strings.Contains(line, "{") || strings.Contains(line, "}") {
 			//log.Printf("Line contained brackets. Skip.")
 			continue
 		}
-		splittedNodeIdArray := strings.Split(line,"--")
+		splittedNodeIdArray := strings.Split(line, "--")
 		//log.Print("Here the read line: ")
 		//log.Println(splittedNodeIdArray)
 		var err error
-		if firstScannedId, err = strconv.Atoi(strings.Trim(splittedNodeIdArray[0],"\t; ")); err != nil {
-			log.Printf("Could not one of the parts to a number: \"%s\"\n%s",splittedNodeIdArray,utils.ERROR_FOOTER)
+		if firstScannedId, err = strconv.Atoi(strings.Trim(splittedNodeIdArray[0], "\t; ")); err != nil {
+			log.Printf("Could not one of the parts to a number: \"%s\"\n%s", splittedNodeIdArray, utils.ERROR_FOOTER)
 			continue
 		}
-		if secondScannedId, err = strconv.Atoi(strings.Trim(splittedNodeIdArray[1],"\t; ")); err != nil {
-			log.Printf("Could not one of the parts to a number: \"%s\"\n%s",splittedNodeIdArray,utils.ERROR_FOOTER)
+		if secondScannedId, err = strconv.Atoi(strings.Trim(splittedNodeIdArray[1], "\t; ")); err != nil {
+			log.Printf("Could not one of the parts to a number: \"%s\"\n%s", splittedNodeIdArray, utils.ERROR_FOOTER)
 			continue
 		}
 		if firstScannedId == ownId {

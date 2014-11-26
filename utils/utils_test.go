@@ -3,10 +3,11 @@
 package utils_test
 
 import (
-	"github.com/jzipfler/htw-ava/utils"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/jzipfler/htw-ava/utils"
 )
 
 const (
@@ -25,13 +26,13 @@ func TestIfFileExists(t *testing.T) {
 	}
 	//Change the permissions that only the owner can read and write it.
 	readWriteFile.Chmod(0600)
-	if err := utils.CheckIfFileExists(readWriteFilePath); err != nil {
+	if exists := utils.CheckIfFileExists(readWriteFilePath); !exists {
 		os.Remove(readWriteFile.Name())
 		t.Error("The file: \"" + readWriteFilePath + "\" exists but the check fails.")
 	}
 	os.Remove(readWriteFile.Name())
 	notExistingFile := "datei123ASD.txt"
-	if err := utils.CheckIfFileExists(notExistingFile); err == nil {
+	if exists := utils.CheckIfFileExists(notExistingFile); exists {
 		t.Error("The file: \"" + notExistingFile + "\" does not exists but no error occured.")
 	}
 }
@@ -47,7 +48,7 @@ func TestIfFileIsReadable(t *testing.T) {
 	}
 	//Change the permissions that only the owner can read and write it.
 	readWriteFile.Chmod(0600)
-	if err := utils.CheckIfFileIsReadable(readWriteFilePath); err != nil {
+	if readable, _ := utils.CheckIfFileIsReadable(readWriteFilePath); !readable {
 		os.Remove(readWriteFile.Name())
 		t.Error("The file: \"" + readWriteFilePath + "\" should be readable but an error occured during the check.")
 	}
@@ -61,7 +62,7 @@ func TestIfFileIsReadable(t *testing.T) {
 	//Change the permissions that only the owner can read it.
 	file.Chmod(0200)
 	//Remove the file after checking. If a error occures and of not...
-	if err := utils.CheckIfFileIsReadable(withoutReadWriteFilePath); err == nil {
+	if readable, _ := utils.CheckIfFileIsReadable(withoutReadWriteFilePath); readable {
 		os.Remove(file.Name())
 		t.Error("The file: \"" + withoutReadWriteFilePath + "\" is not readable but no error occured during the check.")
 	}

@@ -92,8 +92,8 @@ func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkSe
 }
 
 // This function uses a established connection to parse the data there to the
-// protobuf message. The result gets assigned to the channel.
-func ReceiveAndParseIncomingProtobufMessageToChannel(conn net.Conn, c chan *protobuf.Nachricht) {
+// protobuf message and returns it.
+func ReceiveAndParseInfomingProtoufMessage(conn net.Conn) *protobuf.Nachricht {
 	utils.PrintMessage("Incoming message")
 	//Close the connection when the function exits
 	defer conn.Close()
@@ -104,7 +104,7 @@ func ReceiveAndParseIncomingProtobufMessageToChannel(conn net.Conn, c chan *prot
 	if err != nil {
 		log.Fatal("Error happened: " + err.Error())
 	}
-	fmt.Println("Decoding Protobuf message")
+	utils.PrintMessage("Decoding Protobuf message")
 	//Create an struct pointer of type ProtobufTest.TestMessage struct
 	protodata := new(protobuf.Nachricht)
 	//Convert all the data retrieved into the ProtobufTest.TestMessage struct type
@@ -112,6 +112,16 @@ func ReceiveAndParseIncomingProtobufMessageToChannel(conn net.Conn, c chan *prot
 	if err != nil {
 		log.Fatal("Error happened: " + err.Error())
 	}
+	utils.PrintMessage("Message decoded.")
+	return protodata
+}
+
+// This function uses a established connection to parse the data there to the
+// protobuf message. The result gets assigned to the channel instead of
+// returning it.
+func ReceiveAndParseIncomingProtobufMessageToChannel(conn net.Conn, c chan *protobuf.Nachricht) {
+	protodata := ReceiveAndParseInfomingProtoufMessage(conn)
+	utils.PrintMessage("Sending decoded message to channel.")
 	//Push the protobuf message into a channel
 	c <- protodata
 }

@@ -25,6 +25,7 @@ var (
 	nodeListFile              string
 	graphvizFile              string
 	isController              bool
+	rumorExperimentMode       bool
 	allNodes                  map[int]server.NetworkServer
 	neighbors                 map[int]server.NetworkServer
 	messageToAllNeighborsSend bool
@@ -46,9 +47,7 @@ func init() {
 	flag.StringVar(&loggingPrefix, "loggingPrefix", "LOGGING --> ", "This can be used to define which prefix the logger should use to print his messages.")
 	flag.StringVar(&logFile, "logFile", "path/to/logfile.txt", "This parameter can be used to print the logging output to the given file.")
 	flag.BoolVar(&isController, "isController", false, "Tell the node if he should act as controller or as independent node.")
-
-	//TODO: TMP for client / server testing
-	//flag.IntVar(&targetId, "targetId", 1, "The id from the server the message should be sent to. Must be != the id.")
+	flag.BoolVar(&rumorExperimentMode, "rumorExperiment", false, "The last part of the first exercise is a experiment that can be enabled with this parameter.")
 }
 
 // The main function is used when the programm is called / executed.
@@ -97,8 +96,10 @@ func main() {
 				neighbors = exercise1.ChooseThreeNeighbors(id, allNodes)
 			}
 		}
+		// Use this to set the number of used CPUs
+		//runtime.GOMAXPROCS(runtime.NumCPU())
 		utils.PrintMessage(fmt.Sprintf("The following %d neighbors are chosen: %v", len(neighbors), neighbors))
-		exercise1.StartIndependentNode(id, allNodes, neighbors)
+		exercise1.StartIndependentNode(id, allNodes, neighbors, rumorExperimentMode)
 	}
 }
 

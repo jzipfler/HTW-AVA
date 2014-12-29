@@ -21,14 +21,14 @@ func SendProtobufApplicationMessage(sourceServer, destinationServer server.Netwo
 		return errors.New(fmt.Sprintf("The target server has no ip address or port.\n%s\n", destinationServer.IpAndPortAsString(), utils.ERROR_FOOTER))
 	}
 	utils.PrintMessage(fmt.Sprintf("Encode protobuf application message for node with IP:PORT : %s.", destinationServer.IpAndPortAsString()))
-	protobufMessage := new(protobuf.Nachricht)
+	protobufMessage := new(protobuf.MessageTwo)
 	protobufMessage.SourceIP = proto.String(sourceServer.IpAddressAsString())
 	protobufMessage.SourcePort = proto.Int(sourceServer.Port())
 	protobufMessage.SourceID = proto.Int(destnationServerId)
-	nachrichtenTyp := protobuf.Nachricht_NachrichtenTyp(protobuf.Nachricht_ANWENDUNGSNACHRICHT)
-	protobufMessage.NachrichtenTyp = &nachrichtenTyp
-	protobufMessage.NachrichtenInhalt = proto.String(messageContent)
-	protobufMessage.ZeitStempel = proto.String(time.Now().UTC().String())
+	messageType := protobuf.MessageTwo_MessageType(protobuf.MessageTwo_APPLICATIONMESSAGE)
+	protobufMessage.MessageType = &messageType
+	protobufMessage.MessageContent = proto.String(messageContent)
+	protobufMessage.Timestamp = proto.String(time.Now().UTC().String())
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {

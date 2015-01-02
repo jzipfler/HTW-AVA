@@ -14,6 +14,8 @@ import (
 )
 
 var (
+	localCompanyNode          CompanyNode
+	localCustomerNode         CustomerNode
 	localNode                 server.NetworkServer
 	allNodes                  map[int]server.NetworkServer
 	neighbors                 map[int]server.NetworkServer
@@ -39,6 +41,12 @@ func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[
 	allNodes = allAvailableNodes
 	neighbors = neighborNodes
 	localNode = allAvailableNodes[localNodeId]
+	if customerNode {
+		localCustomerNode = NewCustomerNodeWithServerObject(localNode)
+
+	} else {
+		localCompanyNode = NewCompanyNodeWithServerObject(localNode)
+	}
 	messageToAllNeighborsSent = false
 	utils.PrintMessage("This node has the folowing settings: ")
 	utils.PrintMessage(localNode)

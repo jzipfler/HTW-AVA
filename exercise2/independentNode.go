@@ -13,11 +13,6 @@ import (
 	"github.com/jzipfler/htw-ava/utils"
 )
 
-const (
-	// The number of nodes from which the rumor must be heared before the node belives in it.
-	BELIVE_IN_RUMOR_THRESHOLD = 2
-)
-
 var (
 	localNode                 server.NetworkServer
 	allNodes                  map[int]server.NetworkServer
@@ -27,9 +22,9 @@ var (
 
 // With this function an node that interacts independently gets started.
 // He can be controlled with a controller.
-func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[int]server.NetworkServer, businessNode bool) {
+func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[int]server.NetworkServer, customerNode bool) {
 	if allAvailableNodes == nil {
-		utils.PrintMessage(fmt.Sprintf("To start the controller, there must be a node map which is currently nil.\n%s\n", utils.ERROR_FOOTER))
+		utils.PrintMessage(fmt.Sprintf("To start the node, there must be a node map which is currently nil.\n%s\n", utils.ERROR_FOOTER))
 		os.Exit(1)
 	}
 	if _, ok := allAvailableNodes[localNodeId]; !ok {

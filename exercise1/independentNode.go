@@ -33,7 +33,7 @@ var (
 // He can be controlled with a controller.
 func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[int]server.NetworkServer, rumorExperimentMode bool) {
 	if allAvailableNodes == nil {
-		utils.PrintMessage(fmt.Sprintf("To start the controller, there must be a node map which is currently nil.\n%s\n", utils.ERROR_FOOTER))
+		utils.PrintMessage(fmt.Sprintf("To start the node, there must be a node map which is currently nil.\n%s\n", utils.ERROR_FOOTER))
 		os.Exit(1)
 	}
 	if _, ok := allAvailableNodes[localNodeId]; !ok {

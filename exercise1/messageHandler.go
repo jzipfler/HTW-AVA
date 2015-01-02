@@ -93,7 +93,7 @@ func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkSe
 
 // This function uses a established connection to parse the data there to the
 // protobuf message and returns it.
-func ReceiveAndParseInfomingProtoufMessage(conn net.Conn) *protobuf.Nachricht {
+func ReceiveAndParseIncomingProtoufMessage(conn net.Conn) *protobuf.Nachricht {
 	utils.PrintMessage("Incoming message")
 	//Close the connection when the function exits
 	defer conn.Close()
@@ -120,7 +120,7 @@ func ReceiveAndParseInfomingProtoufMessage(conn net.Conn) *protobuf.Nachricht {
 // protobuf message. The result gets assigned to the channel instead of
 // returning it.
 func ReceiveAndParseIncomingProtobufMessageToChannel(conn net.Conn, c chan *protobuf.Nachricht) {
-	protodata := ReceiveAndParseInfomingProtoufMessage(conn)
+	protodata := ReceiveAndParseIncomingProtoufMessage(conn)
 	utils.PrintMessage("Sending decoded message to channel.")
 	//Push the protobuf message into a channel
 	c <- protodata

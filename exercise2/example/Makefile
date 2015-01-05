@@ -1,4 +1,4 @@
-.PHONY: all, clean, clear
+.PHONY: all, clean, clear, avaStarter2 , generateGraphviz
 
 all: avaStarter2 generateGraphviz
 

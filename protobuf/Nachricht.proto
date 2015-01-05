@@ -53,9 +53,7 @@ message MessageTwo {
 	required MessageType messageType = 4 [default = APPLICATIONMESSAGE];
 	optional ControlType controlType = 5 [default = INITIALIZE];
 	required NodeType nodeType = 6 [default = CUSTOMER];
-	optional int32 companyId= 7;
-	optional int32 customerId = 8;
-	required string messageContent = 9;
-	optional string timestamp = 10;
+	required string messageContent = 7;
+	optional string timestamp = 8;
 	
 }

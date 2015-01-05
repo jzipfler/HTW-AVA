@@ -268,10 +268,8 @@ type MessageTwo struct {
 	MessageType      *MessageTwo_MessageType `protobuf:"varint,4,req,name=messageType,enum=protobuf.MessageTwo_MessageType,def=1" json:"messageType,omitempty"`
 	ControlType      *MessageTwo_ControlType `protobuf:"varint,5,opt,name=controlType,enum=protobuf.MessageTwo_ControlType,def=0" json:"controlType,omitempty"`
 	NodeType         *MessageTwo_NodeType    `protobuf:"varint,6,req,name=nodeType,enum=protobuf.MessageTwo_NodeType,def=1" json:"nodeType,omitempty"`
-	CompanyId        *int32                  `protobuf:"varint,7,opt,name=companyId" json:"companyId,omitempty"`
-	CustomerId       *int32                  `protobuf:"varint,8,opt,name=customerId" json:"customerId,omitempty"`
-	MessageContent   *string                 `protobuf:"bytes,9,req,name=messageContent" json:"messageContent,omitempty"`
-	Timestamp        *string                 `protobuf:"bytes,10,opt,name=timestamp" json:"timestamp,omitempty"`
+	MessageContent   *string                 `protobuf:"bytes,7,req,name=messageContent" json:"messageContent,omitempty"`
+	Timestamp        *string                 `protobuf:"bytes,8,opt,name=timestamp" json:"timestamp,omitempty"`
 	XXX_unrecognized []byte                  `json:"-"`
 }
 
@@ -323,20 +321,6 @@ func (m *MessageTwo) GetNodeType() MessageTwo_NodeType {
 		return *m.NodeType
 	}
 	return Default_MessageTwo_NodeType
-}
-
-func (m *MessageTwo) GetCompanyId() int32 {
-	if m != nil && m.CompanyId != nil {
-		return *m.CompanyId
-	}
-	return 0
-}
-
-func (m *MessageTwo) GetCustomerId() int32 {
-	if m != nil && m.CustomerId != nil {
-		return *m.CustomerId
-	}
-	return 0
 }
 
 func (m *MessageTwo) GetMessageContent() string {

@@ -158,6 +158,12 @@ func handleReceivedProtobufMessageWithChannel(localNode server.NetworkServer, re
 // application message and gives it to the related function.
 func handleReceivedProtobufMessage(localNode server.NetworkServer, protoMessage *protobuf.MessageTwo) {
 	utils.PrintMessage(fmt.Sprintf("Message on %s received:\n\n%s\n\n", localNode.String(), protoMessage.String()))
+	switch protoMessage.GetNodeType() {
+	case protobuf.MessageTwo_COMPANY:
+		customerNodeMap[int(protoMessage.GetSourceID())] = true
+	case protobuf.MessageTwo_CUSTOMER:
+		customerNodeMap[int(protoMessage.GetSourceID())] = false
+	}
 	switch protoMessage.GetMessageType() {
 	case protobuf.MessageTwo_CONTROLMESSAGE:
 		utils.PrintMessage("Message is of type CONTROLMESSAGE.")
@@ -173,15 +179,23 @@ func handleReceivedProtobufMessage(localNode server.NetworkServer, protoMessage 
 func handleReceivedControlMessage(message *protobuf.MessageTwo) {
 	switch message.GetControlType() {
 	case protobuf.MessageTwo_INITIALIZE:
+		//TODO: Implement ECHO algorithm for companies here.
 		if !messageToAllNeighborsSent {
-			for _, value := range neighbors {
-				SendProtobufApplicationMessage(localNode, value, localeId, message.GetMessageContent(), isCustomerInitialized())
+			for destinationId, value := range neighbors {
+				if destinationId != int(message.SourceID) {
+					SendProtobufControlMessage(localNode, value, localeId, utils.CONTROL_TYPE_INIT, message.GetMessageContent(), isCustomerInitialized())
+				}
+				//SendProtobufApplicationMessage(localNode, value, localeId, message.GetMessageContent(), isCustomerInitialized())
 			}
 			messageToAllNeighborsSent = true
 		}
+		//Begin with the advertisement
+		if message.GetNodeType() == protobuf.MessageTwo_COMPANY {
+			//TODO: Send advertisement
+		}
 	case protobuf.MessageTwo_QUIT:
-		for id, destinationNode := range neighbors {
-			SendProtobufControlMessage(localNode, destinationNode, id, utils.CONTROL_TYPE_EXIT, message.GetMessageContent(), isCustomerInitialized())
+		for _, destinationNode := range neighbors {
+			SendProtobufControlMessage(localNode, destinationNode, localeId, utils.CONTROL_TYPE_EXIT, message.GetMessageContent(), isCustomerInitialized())
 		}
 		utils.PrintMessage("Received a QUIT message, so program will be exited.")
 		os.Exit(0)

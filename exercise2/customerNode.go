@@ -1,6 +1,8 @@
 package exercise2
 
 import (
+	"fmt"
+
 	"github.com/jzipfler/htw-ava/server"
 )
 
@@ -95,5 +97,5 @@ func (customerNode CustomerNode) WouldTheCustomerBuyProductFromCompanyWithId(com
 
 //The string representation
 func (customerNode CustomerNode) String() string {
-	return customerNode.NetworkServer.String()
+	return fmt.Sprintf("CustomerID: %d, Server-Settings: %v", customerNode.CustomerId(), customerNode.NetworkServer.String())
 }

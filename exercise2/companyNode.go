@@ -108,5 +108,5 @@ func (companyNode *CompanyNode) AddRegularCustomer(customerId int, serverObjectI
 
 // The string representation of this type.
 func (companyNode CompanyNode) String() string {
-	return companyNode.NetworkServer.String()
+	return fmt.Sprintf("CompanyID: %d, Product: %s, Budget: %d, Server-Settings: %v", companyNode.CompanyId(), companyNode.Product(), companyNode.AdvertisingBudget(), companyNode.NetworkServer.String())
 }

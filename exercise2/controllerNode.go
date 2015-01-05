@@ -51,7 +51,7 @@ func StartController(localNode server.NetworkServer, allNodes map[int]server.Net
 			quit = askForProgramRestart()
 			continue
 		}
-		if err := SendProtobufControlMessage(localNode, allNodes[targetId], targetId, controlAction, messageContent); err != nil {
+		if err := SendProtobufControlMessage(localNode, allNodes[targetId], 1337, controlAction, messageContent, false); err != nil {
 			utils.PrintMessage(fmt.Sprintf("The following error occured while trying to send a control message: %s\n%s\n", err.Error(), utils.ERROR_FOOTER))
 		} else {
 			utils.PrintMessage(fmt.Sprintf("Message to node with id %d, successfully sent.", targetId))

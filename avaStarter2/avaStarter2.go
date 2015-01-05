@@ -66,9 +66,6 @@ func main() {
 			log.Fatalf("There is only one node in the nodeList. Ther must be at least 2.\n%s\n", utils.ERROR_FOOTER)
 		}
 	}
-	if rumor != "The earth is a disc." {
-		messageContent = rumor
-	}
 
 	go signalHandler() // Handle CTRL-C signals
 	utils.InitializeLogger(logFile, fmt.Sprintf("%s(%d)", loggingPrefix, id))
@@ -95,7 +92,7 @@ func main() {
 		// Use this to set the number of used CPUs
 		//runtime.GOMAXPROCS(runtime.NumCPU())
 		utils.PrintMessage(fmt.Sprintf("The following %d neighbors are chosen: %v", len(neighbors), neighbors))
-		exercise2.StartIndependentNode(id, allNodes, neighbors, isCustomer)
+		exercise2.StartIndependentNode(id, isCustomer, allNodes, neighbors)
 	}
 }
 

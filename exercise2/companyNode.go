@@ -29,6 +29,7 @@ type CompanyNode struct {
 	regularCustomers  map[int]server.NetworkServer
 }
 
+// Creates / initializes a new CompanyNode
 func NewCompanyNode() CompanyNode {
 	return CompanyNode{server.New(), 0, "", 0, make(map[int]server.NetworkServer)}
 }
@@ -50,43 +51,53 @@ func (companyNode *CompanyNode) InitAdvertisingBudgetWithThreashold(threshold in
 	companyNode.advertisingBudget = rand.Intn(threshold)
 }
 
+// Return the company id.
 func (companyNode CompanyNode) CompanyId() int {
 	return companyNode.companyId
 }
 
+// Set the value of the company id
 func (companyNode *CompanyNode) SetCompanyId(companyId int) {
 	companyNode.companyId = companyId
 }
 
+// Return the product name
 func (companyNode CompanyNode) Product() string {
 	return companyNode.product
 }
 
+// Set the name of the product
 func (companyNode *CompanyNode) SetProduct(product string) {
 	companyNode.product = product
 }
 
+// Return the budget for the advertisements
 func (companyNode CompanyNode) AdvertisingBudget() int {
 	return companyNode.advertisingBudget
 }
 
+// Set the budget for the advertiesements
 func (companyNode *CompanyNode) SetAdvertisingBudget(advertisingBudget int) {
 	companyNode.advertisingBudget = advertisingBudget
 }
 
+// Return the map of regular customers
 func (companyNode CompanyNode) RegularCustomers() map[int]server.NetworkServer {
 	return companyNode.regularCustomers
 }
 
+// Set the map of regular customers
 func (companyNode *CompanyNode) SetRegularCustomers(regularCustomers map[int]server.NetworkServer) {
 	companyNode.regularCustomers = regularCustomers
 }
 
+// Check if the customer with the given id is a regular customer.
 func (companyNode CompanyNode) IsRegularCustomer(customerId int) bool {
 	_, available := companyNode.regularCustomers[customerId]
 	return available
 }
 
+// Add a customer to the regular customers. Returns a error if the customer is already available.
 func (companyNode *CompanyNode) AddRegularCustomer(customerId int, serverObjectInformation server.NetworkServer, override bool) error {
 	if _, available := companyNode.regularCustomers[customerId]; available && !override {
 		return errors.New(fmt.Sprintf("The customer with the ID %d is already available and override is set to false.", customerId))
@@ -95,6 +106,7 @@ func (companyNode *CompanyNode) AddRegularCustomer(customerId int, serverObjectI
 	return nil
 }
 
+// The string representation of this type.
 func (companyNode CompanyNode) String() string {
 	return companyNode.NetworkServer.String()
 }

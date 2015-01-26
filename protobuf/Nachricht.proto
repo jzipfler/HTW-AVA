@@ -57,3 +57,27 @@ message MessageTwo {
 	optional string timestamp = 8;
 	
 }
+
+//Message definitions for exercise 3
+
+message FilemanagerRequest {
+
+	enum AccessOperation {
+		GET = 0;
+		RELEASE = 1;
+		RENOUNCE = 2;
+	}
+
+	required string sourceIP = 1;
+	required int32 sourcePort = 2;
+	required int32 sourceID = 3;
+	required AccessOperation accessOperation = 4;
+}
+
+message FilemanagerResponse {
+	
+	required string sourceIP = 1;
+	required int32 sourcePort = 2;
+	required int32 sourceID = 3;
+	required bool accessGranted = 4;
+}

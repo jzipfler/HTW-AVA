@@ -11,6 +11,8 @@ It is generated from these files:
 It has these top-level messages:
 	Nachricht
 	MessageTwo
+	FilemanagerRequest
+	FilemanagerResponse
 */
 package protobuf
 
@@ -192,6 +194,42 @@ func (x *MessageTwo_NodeType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type FilemanagerRequest_AccessOperation int32
+
+const (
+	FilemanagerRequest_GET      FilemanagerRequest_AccessOperation = 0
+	FilemanagerRequest_RELEASE  FilemanagerRequest_AccessOperation = 1
+	FilemanagerRequest_RENOUNCE FilemanagerRequest_AccessOperation = 2
+)
+
+var FilemanagerRequest_AccessOperation_name = map[int32]string{
+	0: "GET",
+	1: "RELEASE",
+	2: "RENOUNCE",
+}
+var FilemanagerRequest_AccessOperation_value = map[string]int32{
+	"GET":      0,
+	"RELEASE":  1,
+	"RENOUNCE": 2,
+}
+
+func (x FilemanagerRequest_AccessOperation) Enum() *FilemanagerRequest_AccessOperation {
+	p := new(FilemanagerRequest_AccessOperation)
+	*p = x
+	return p
+}
+func (x FilemanagerRequest_AccessOperation) String() string {
+	return proto.EnumName(FilemanagerRequest_AccessOperation_name, int32(x))
+}
+func (x *FilemanagerRequest_AccessOperation) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(FilemanagerRequest_AccessOperation_value, data, "FilemanagerRequest_AccessOperation")
+	if err != nil {
+		return err
+	}
+	*x = FilemanagerRequest_AccessOperation(value)
+	return nil
+}
+
 // Nachrichtendefinition fuer Aufgabe 1.
 type Nachricht struct {
 	SourceIP          *string                   `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
@@ -337,10 +375,91 @@ func (m *MessageTwo) GetTimestamp() string {
 	return ""
 }
 
+type FilemanagerRequest struct {
+	SourceIP         *string                             `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort       *int32                              `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	SourceID         *int32                              `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
+	AccessOperation  *FilemanagerRequest_AccessOperation `protobuf:"varint,4,req,name=accessOperation,enum=protobuf.FilemanagerRequest_AccessOperation" json:"accessOperation,omitempty"`
+	XXX_unrecognized []byte                              `json:"-"`
+}
+
+func (m *FilemanagerRequest) Reset()         { *m = FilemanagerRequest{} }
+func (m *FilemanagerRequest) String() string { return proto.CompactTextString(m) }
+func (*FilemanagerRequest) ProtoMessage()    {}
+
+func (m *FilemanagerRequest) GetSourceIP() string {
+	if m != nil && m.SourceIP != nil {
+		return *m.SourceIP
+	}
+	return ""
+}
+
+func (m *FilemanagerRequest) GetSourcePort() int32 {
+	if m != nil && m.SourcePort != nil {
+		return *m.SourcePort
+	}
+	return 0
+}
+
+func (m *FilemanagerRequest) GetSourceID() int32 {
+	if m != nil && m.SourceID != nil {
+		return *m.SourceID
+	}
+	return 0
+}
+
+func (m *FilemanagerRequest) GetAccessOperation() FilemanagerRequest_AccessOperation {
+	if m != nil && m.AccessOperation != nil {
+		return *m.AccessOperation
+	}
+	return FilemanagerRequest_GET
+}
+
+type FilemanagerResponse struct {
+	SourceIP         *string `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort       *int32  `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	SourceID         *int32  `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
+	AccessGranted    *bool   `protobuf:"varint,4,req,name=accessGranted" json:"accessGranted,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *FilemanagerResponse) Reset()         { *m = FilemanagerResponse{} }
+func (m *FilemanagerResponse) String() string { return proto.CompactTextString(m) }
+func (*FilemanagerResponse) ProtoMessage()    {}
+
+func (m *FilemanagerResponse) GetSourceIP() string {
+	if m != nil && m.SourceIP != nil {
+		return *m.SourceIP
+	}
+	return ""
+}
+
+func (m *FilemanagerResponse) GetSourcePort() int32 {
+	if m != nil && m.SourcePort != nil {
+		return *m.SourcePort
+	}
+	return 0
+}
+
+func (m *FilemanagerResponse) GetSourceID() int32 {
+	if m != nil && m.SourceID != nil {
+		return *m.SourceID
+	}
+	return 0
+}
+
+func (m *FilemanagerResponse) GetAccessGranted() bool {
+	if m != nil && m.AccessGranted != nil {
+		return *m.AccessGranted
+	}
+	return false
+}
+
 func init() {
 	proto.RegisterEnum("protobuf.Nachricht_NachrichtenTyp", Nachricht_NachrichtenTyp_name, Nachricht_NachrichtenTyp_value)
 	proto.RegisterEnum("protobuf.Nachricht_KontrollTyp", Nachricht_KontrollTyp_name, Nachricht_KontrollTyp_value)
 	proto.RegisterEnum("protobuf.MessageTwo_MessageType", MessageTwo_MessageType_name, MessageTwo_MessageType_value)
 	proto.RegisterEnum("protobuf.MessageTwo_ControlType", MessageTwo_ControlType_name, MessageTwo_ControlType_value)
 	proto.RegisterEnum("protobuf.MessageTwo_NodeType", MessageTwo_NodeType_name, MessageTwo_NodeType_value)
+	proto.RegisterEnum("protobuf.FilemanagerRequest_AccessOperation", FilemanagerRequest_AccessOperation_name, FilemanagerRequest_AccessOperation_value)
 }

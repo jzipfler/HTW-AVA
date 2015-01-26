@@ -1,9 +1,7 @@
-package exercise1
+package exercise2
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -15,23 +13,20 @@ import (
 	"github.com/jzipfler/htw-ava/utils"
 )
 
-const (
-	// The number of nodes from which the rumor must be heared before the node belives in it.
-	BELIVE_IN_RUMOR_THRESHOLD = 2
-)
-
 var (
+	localCompanyNode          CompanyNode
+	localCustomerNode         CustomerNode
 	localNode                 server.NetworkServer
+	customerNodeMap           map[int]bool
 	allNodes                  map[int]server.NetworkServer
 	neighbors                 map[int]server.NetworkServer
 	messageToAllNeighborsSent bool
-	rumorExperiment           bool
-	rumors                    []int
+	localeId                  int
 )
 
 // With this function an node that interacts independently gets started.
 // He can be controlled with a controller.
-func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[int]server.NetworkServer, rumorExperimentMode bool) {
+func StartIndependentNode(localNodeId int, customerNode bool, allAvailableNodes, neighborNodes map[int]server.NetworkServer) {
 	if allAvailableNodes == nil {
 		utils.PrintMessage(fmt.Sprintf("To start the node, there must be a node map which is currently nil.\n%s\n", utils.ERROR_FOOTER))
 		os.Exit(1)
@@ -45,16 +40,37 @@ func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[
 		neighborNodes = ChooseThreeNeighbors(localNodeId, allAvailableNodes)
 	}
 	utils.PrintMessage("Start current instance as independent node.")
+	localeId = localNodeId
 	allNodes = allAvailableNodes
 	neighbors = neighborNodes
-	localNode = allAvailableNodes[localNodeId]
-	rumors = make([]int, len(allNodes), len(allNodes))
-	messageToAllNeighborsSent = false
-	rumorExperiment = rumorExperimentMode
-	utils.PrintMessage("This node has the folowing settings: ")
-	utils.PrintMessage(localNode)
+	localNode = allAvailableNodes[localeId]
+	customerNodeMap = make(map[int]bool, len(allNodes))
+	if customerNode {
+		customerNodeMap[localeId] = true
+		localCustomerNode = NewCustomerNodeWithServerObject(localNode)
+		localCustomerNode.SetCustomerId(localeId)
+		localCustomerNode.SetFriends(neighborNodes)
+		utils.PrintMessage("This node has the folowing settings: ")
+		utils.PrintMessage(localCustomerNode)
 
-	protobufChannel := make(chan *protobuf.Nachricht)
+		//Set the companyNode's id to -1, because it is easier to identify the "unset" node.
+		localCompanyNode.SetCompanyId(-1)
+	} else {
+		customerNodeMap[localeId] = false
+		localCompanyNode = NewCompanyNodeWithServerObject(localNode)
+		localCompanyNode.SetCompanyId(localeId)
+		localCompanyNode.SetProduct(fmt.Sprintf("Product%d", localeId))
+		localCompanyNode.SetRegularCustomers(neighborNodes)
+		localCompanyNode.InitAdvertisingBudget()
+		utils.PrintMessage("This node has the folowing settings: ")
+		utils.PrintMessage(localCompanyNode)
+
+		//Set the customerNode's id to -1, because it is easier to identify the "unset" node.
+		localCustomerNode.SetCustomerId(-1)
+	}
+	messageToAllNeighborsSent = false
+
+	protobufChannel := make(chan *protobuf.MessageTwo)
 	//A goroutine that receives the protobuf message and reacts to it.
 	go handleReceivedProtobufMessageWithChannel(localNode, protobufChannel)
 	if err := server.StartServer(localNode, nil); err != nil {
@@ -66,6 +82,7 @@ func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[
 		//ReceiveMessage blocks until a message comes in
 		if conn, err := server.ReceiveMessage(); err == nil {
 			//If err is nil then that means that data is available for us so we take up this data and pass it to a new goroutine
+			//Method is placed in messageHandler.go
 			go ReceiveAndParseIncomingProtobufMessageToChannel(conn, protobufChannel)
 			//ReceiveAndParseIncomingProtobufMessageToChannel(conn, protobufChannel)
 			//protodata := ReceiveAndParseInfomingProtoufMessage(conn)
@@ -73,6 +90,13 @@ func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[
 			//handleReceivedProtobufMessage(protodata)
 		}
 	}
+}
+
+func isCustomerInitialized() bool {
+	if localCustomerNode.CustomerId() != -1 {
+		return true
+	}
+	return false
 }
 
 // The chooseThreeNeighbors function uses the allAvailableNodes map to return
@@ -122,102 +146,70 @@ func ChooseThreeNeighbors(localNodeId int, allAvailableNodes map[int]server.Netw
 
 // This function waits for a message that is sent to the channel and
 // splits the handling of the message depending on the NachrichtenTyp (message type)
-func handleReceivedProtobufMessageWithChannel(localNode server.NetworkServer, receivingChannel chan *protobuf.Nachricht) {
+func handleReceivedProtobufMessageWithChannel(localNode server.NetworkServer, receivingChannel chan *protobuf.MessageTwo) {
 	for {
 		// This call blocks until a new message is available.
 		message := <-receivingChannel
-		utils.PrintMessage(fmt.Sprintf("Message on %s received:\n\n%s\n\n", localNode.String(), message.String()))
-		switch message.GetNachrichtenTyp() {
-		case protobuf.Nachricht_KONTROLLNACHRICHT:
-			utils.PrintMessage("Message is of type KONTROLLNACHRICHT.")
-			handleReceivedControlMessage(message)
-		case protobuf.Nachricht_ANWENDUNGSNACHRICHT:
-			utils.PrintMessage("Message is of type ANWENDUNGSNACHRICHT.")
-			handleReceivedApplicationMessage(message)
-		default:
-			log.Fatalln("Read a unknown \"NachrichtenTyp\"")
-		}
+		handleReceivedProtobufMessage(localNode, message)
 	}
 }
 
 // This method gets a protobuf message and decides if it is a control or a
 // application message and gives it to the related function.
-func handleReceivedProtobufMessage(protoMessage *protobuf.Nachricht) {
-	switch protoMessage.GetNachrichtenTyp() {
-	case protobuf.Nachricht_KONTROLLNACHRICHT:
-		utils.PrintMessage("Message is of type KONTROLLNACHRICHT.")
+func handleReceivedProtobufMessage(localNode server.NetworkServer, protoMessage *protobuf.MessageTwo) {
+	utils.PrintMessage(fmt.Sprintf("Message on %s received:\n\n%s\n\n", localNode.String(), protoMessage.String()))
+	switch protoMessage.GetNodeType() {
+	case protobuf.MessageTwo_COMPANY:
+		customerNodeMap[int(protoMessage.GetSourceID())] = true
+	case protobuf.MessageTwo_CUSTOMER:
+		customerNodeMap[int(protoMessage.GetSourceID())] = false
+	}
+	switch protoMessage.GetMessageType() {
+	case protobuf.MessageTwo_CONTROLMESSAGE:
+		utils.PrintMessage("Message is of type CONTROLMESSAGE.")
 		handleReceivedControlMessage(protoMessage)
-	case protobuf.Nachricht_ANWENDUNGSNACHRICHT:
-		utils.PrintMessage("Message is of type ANWENDUNGSNACHRICHT.")
+	case protobuf.MessageTwo_APPLICATIONMESSAGE:
+		utils.PrintMessage("Message is of type APPLICATIONMESSAGE.")
 		handleReceivedApplicationMessage(protoMessage)
 	default:
 		log.Fatalln("Read a unknown \"NachrichtenTyp\"")
 	}
 }
 
-func handleReceivedControlMessage(message *protobuf.Nachricht) {
-	switch message.GetKontrollTyp() {
-	case protobuf.Nachricht_INITIALISIEREN:
+func handleReceivedControlMessage(message *protobuf.MessageTwo) {
+	switch message.GetControlType() {
+	case protobuf.MessageTwo_INITIALIZE:
+		//TODO: Implement ECHO algorithm for companies here.
 		if !messageToAllNeighborsSent {
-			for key, value := range neighbors {
-				SendProtobufApplicationMessage(localNode, value, key, message.GetNachrichtenInhalt())
+			for destinationId, value := range neighbors {
+				if destinationId != int(message.SourceID) {
+					SendProtobufControlMessage(localNode, value, localeId, utils.CONTROL_TYPE_INIT, message.GetMessageContent(), isCustomerInitialized())
+				}
+				//SendProtobufApplicationMessage(localNode, value, localeId, message.GetMessageContent(), isCustomerInitialized())
 			}
 			messageToAllNeighborsSent = true
 		}
-	case protobuf.Nachricht_BEENDEN:
-		for id, destinationNode := range neighbors {
-			SendProtobufControlMessage(localNode, destinationNode, id, utils.CONTROL_TYPE_EXIT, message.GetNachrichtenInhalt())
+		//Begin with the advertisement
+		if message.GetNodeType() == protobuf.MessageTwo_COMPANY {
+			//TODO: Send advertisement
 		}
-		utils.PrintMessage("Received a EXIT message, so program will be exited.")
+	case protobuf.MessageTwo_QUIT:
+		for _, destinationNode := range neighbors {
+			SendProtobufControlMessage(localNode, destinationNode, localeId, utils.CONTROL_TYPE_EXIT, message.GetMessageContent(), isCustomerInitialized())
+		}
+		utils.PrintMessage("Received a QUIT message, so program will be exited.")
 		os.Exit(0)
 	default:
-		log.Fatalln("Read a unknown \"KontrollTyp\"")
+		log.Fatalln("Read a unknown \"ControlType\"")
 	}
 }
 
-func handleReceivedApplicationMessage(message *protobuf.Nachricht) {
-	/*
-	 *	Check if the last part of exercise one or if the first part should be
-	 *	applied. The first part simply sends the own ID to all neighbors once.
-	 * 	The last part is where a rumor should be be telled to a defined number
-	 * 	of neighbors. For example (d-2) neighbors, where d is the degree of
-	 *	the node.
-	 */
-	if rumorExperiment {
-		// TODO: Place for the last part of the exercise (RUMORS)
-		rumors[int(message.GetSourceID())-1]++
-		utils.PrintMessage(fmt.Sprintln("Current rumors counted: ", rumors[int(message.GetSourceID())-1]))
-		if rumors[int(message.GetSourceID())-1] == BELIVE_IN_RUMOR_THRESHOLD {
-			filename := localNode.ClientName() + "_belives.txt"
-			if exists := utils.CheckIfFileExists(filename); !exists {
-				stringBuffer := bytes.NewBufferString(message.GetNachrichtenInhalt())
-				ioutil.WriteFile(filename, stringBuffer.Bytes(), 0644)
-			}
+func handleReceivedApplicationMessage(message *protobuf.MessageTwo) {
+	if !messageToAllNeighborsSent {
+		for _, value := range neighbors {
+			SendProtobufApplicationMessage(localNode, value, localeId, message.GetMessageContent(), isCustomerInitialized())
 		}
-		/*
-		 *	The three variations to
-		 *	0) allen Nachbarn
-		 *	i) 2 Nachbarn
-		 *	ii) d-2 Nachbarn, wobei d der Grad des Knotens ist
-		 *	iii) (d-1)/2 Nachbarn, wobei d der Grad des Knotens ist
-		 */
-		sentToNeighborsThreshold := len(neighbors)
-		for key, value := range neighbors {
-			alreadySent := 0
-			// Send it only that often as defined in the comment above.
-			if alreadySent >= sentToNeighborsThreshold {
-				break
-			}
-			SendProtobufApplicationMessage(localNode, value, key, message.GetNachrichtenInhalt())
-			alreadySent++
-		}
-	} else {
-		if !messageToAllNeighborsSent {
-			for key, value := range neighbors {
-				SendProtobufApplicationMessage(localNode, value, key, message.GetNachrichtenInhalt())
-			}
-			messageToAllNeighborsSent = true
-		}
+		messageToAllNeighborsSent = true
 	}
 	// Because the SourceID is of type int32, I have to cast it here.
 	sourceId := int(message.GetSourceID())

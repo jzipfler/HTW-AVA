@@ -10,6 +10,7 @@ It is generated from these files:
 
 It has these top-level messages:
 	Nachricht
+	MessageTwo
 */
 package protobuf
 
@@ -89,6 +90,109 @@ func (x *Nachricht_KontrollTyp) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type MessageTwo_MessageType int32
+
+const (
+	MessageTwo_CONTROLMESSAGE     MessageTwo_MessageType = 0
+	MessageTwo_APPLICATIONMESSAGE MessageTwo_MessageType = 1
+)
+
+var MessageTwo_MessageType_name = map[int32]string{
+	0: "CONTROLMESSAGE",
+	1: "APPLICATIONMESSAGE",
+}
+var MessageTwo_MessageType_value = map[string]int32{
+	"CONTROLMESSAGE":     0,
+	"APPLICATIONMESSAGE": 1,
+}
+
+func (x MessageTwo_MessageType) Enum() *MessageTwo_MessageType {
+	p := new(MessageTwo_MessageType)
+	*p = x
+	return p
+}
+func (x MessageTwo_MessageType) String() string {
+	return proto.EnumName(MessageTwo_MessageType_name, int32(x))
+}
+func (x *MessageTwo_MessageType) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(MessageTwo_MessageType_value, data, "MessageTwo_MessageType")
+	if err != nil {
+		return err
+	}
+	*x = MessageTwo_MessageType(value)
+	return nil
+}
+
+type MessageTwo_ControlType int32
+
+const (
+	// Use this option if you want to assign multiple definitions for the same value
+	// For example: "INITIALIZE = 0;" && "START = 0;".
+	// option allow_alias = true;
+	MessageTwo_INITIALIZE MessageTwo_ControlType = 0
+	MessageTwo_QUIT       MessageTwo_ControlType = 1
+)
+
+var MessageTwo_ControlType_name = map[int32]string{
+	0: "INITIALIZE",
+	1: "QUIT",
+}
+var MessageTwo_ControlType_value = map[string]int32{
+	"INITIALIZE": 0,
+	"QUIT":       1,
+}
+
+func (x MessageTwo_ControlType) Enum() *MessageTwo_ControlType {
+	p := new(MessageTwo_ControlType)
+	*p = x
+	return p
+}
+func (x MessageTwo_ControlType) String() string {
+	return proto.EnumName(MessageTwo_ControlType_name, int32(x))
+}
+func (x *MessageTwo_ControlType) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(MessageTwo_ControlType_value, data, "MessageTwo_ControlType")
+	if err != nil {
+		return err
+	}
+	*x = MessageTwo_ControlType(value)
+	return nil
+}
+
+type MessageTwo_NodeType int32
+
+const (
+	MessageTwo_COMPANY  MessageTwo_NodeType = 0
+	MessageTwo_CUSTOMER MessageTwo_NodeType = 1
+)
+
+var MessageTwo_NodeType_name = map[int32]string{
+	0: "COMPANY",
+	1: "CUSTOMER",
+}
+var MessageTwo_NodeType_value = map[string]int32{
+	"COMPANY":  0,
+	"CUSTOMER": 1,
+}
+
+func (x MessageTwo_NodeType) Enum() *MessageTwo_NodeType {
+	p := new(MessageTwo_NodeType)
+	*p = x
+	return p
+}
+func (x MessageTwo_NodeType) String() string {
+	return proto.EnumName(MessageTwo_NodeType_name, int32(x))
+}
+func (x *MessageTwo_NodeType) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(MessageTwo_NodeType_value, data, "MessageTwo_NodeType")
+	if err != nil {
+		return err
+	}
+	*x = MessageTwo_NodeType(value)
+	return nil
+}
+
+// Nachrichtendefinition fuer Aufgabe 1.
 type Nachricht struct {
 	SourceIP          *string                   `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
 	SourcePort        *int32                    `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
@@ -156,7 +260,87 @@ func (m *Nachricht) GetZeitStempel() string {
 	return ""
 }
 
+// Message definition for exercise 2.
+type MessageTwo struct {
+	SourceIP         *string                 `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort       *int32                  `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	SourceID         *int32                  `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
+	MessageType      *MessageTwo_MessageType `protobuf:"varint,4,req,name=messageType,enum=protobuf.MessageTwo_MessageType,def=1" json:"messageType,omitempty"`
+	ControlType      *MessageTwo_ControlType `protobuf:"varint,5,opt,name=controlType,enum=protobuf.MessageTwo_ControlType,def=0" json:"controlType,omitempty"`
+	NodeType         *MessageTwo_NodeType    `protobuf:"varint,6,req,name=nodeType,enum=protobuf.MessageTwo_NodeType,def=1" json:"nodeType,omitempty"`
+	MessageContent   *string                 `protobuf:"bytes,7,req,name=messageContent" json:"messageContent,omitempty"`
+	Timestamp        *string                 `protobuf:"bytes,8,opt,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte                  `json:"-"`
+}
+
+func (m *MessageTwo) Reset()         { *m = MessageTwo{} }
+func (m *MessageTwo) String() string { return proto.CompactTextString(m) }
+func (*MessageTwo) ProtoMessage()    {}
+
+const Default_MessageTwo_MessageType MessageTwo_MessageType = MessageTwo_APPLICATIONMESSAGE
+const Default_MessageTwo_ControlType MessageTwo_ControlType = MessageTwo_INITIALIZE
+const Default_MessageTwo_NodeType MessageTwo_NodeType = MessageTwo_CUSTOMER
+
+func (m *MessageTwo) GetSourceIP() string {
+	if m != nil && m.SourceIP != nil {
+		return *m.SourceIP
+	}
+	return ""
+}
+
+func (m *MessageTwo) GetSourcePort() int32 {
+	if m != nil && m.SourcePort != nil {
+		return *m.SourcePort
+	}
+	return 0
+}
+
+func (m *MessageTwo) GetSourceID() int32 {
+	if m != nil && m.SourceID != nil {
+		return *m.SourceID
+	}
+	return 0
+}
+
+func (m *MessageTwo) GetMessageType() MessageTwo_MessageType {
+	if m != nil && m.MessageType != nil {
+		return *m.MessageType
+	}
+	return Default_MessageTwo_MessageType
+}
+
+func (m *MessageTwo) GetControlType() MessageTwo_ControlType {
+	if m != nil && m.ControlType != nil {
+		return *m.ControlType
+	}
+	return Default_MessageTwo_ControlType
+}
+
+func (m *MessageTwo) GetNodeType() MessageTwo_NodeType {
+	if m != nil && m.NodeType != nil {
+		return *m.NodeType
+	}
+	return Default_MessageTwo_NodeType
+}
+
+func (m *MessageTwo) GetMessageContent() string {
+	if m != nil && m.MessageContent != nil {
+		return *m.MessageContent
+	}
+	return ""
+}
+
+func (m *MessageTwo) GetTimestamp() string {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterEnum("protobuf.Nachricht_NachrichtenTyp", Nachricht_NachrichtenTyp_name, Nachricht_NachrichtenTyp_value)
 	proto.RegisterEnum("protobuf.Nachricht_KontrollTyp", Nachricht_KontrollTyp_name, Nachricht_KontrollTyp_value)
+	proto.RegisterEnum("protobuf.MessageTwo_MessageType", MessageTwo_MessageType_name, MessageTwo_MessageType_value)
+	proto.RegisterEnum("protobuf.MessageTwo_ControlType", MessageTwo_ControlType_name, MessageTwo_ControlType_value)
+	proto.RegisterEnum("protobuf.MessageTwo_NodeType", MessageTwo_NodeType_name, MessageTwo_NodeType_value)
 }

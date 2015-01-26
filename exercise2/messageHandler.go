@@ -1,4 +1,4 @@
-package exercise1
+package exercise2
 
 import (
 	"errors"
@@ -14,21 +14,28 @@ import (
 	"github.com/jzipfler/htw-ava/utils"
 )
 
-// This function sends a application message (ANWENDUNGSNACHRICHT) to the neighbor with
+// This function sends a application message to the neighbor with
 // the given targetId. If the id does not exists, it just returns and does nothing.
-func SendProtobufApplicationMessage(sourceServer, destinationServer server.NetworkServer, destnationServerId int, messageContent string) error {
+func SendProtobufApplicationMessage(sourceServer, destinationServer server.NetworkServer, sourceServerId int, messageContent string, isCustomer bool) error {
 	if destinationServer.IpAddressAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server has no ip address or port.\n%s\n", destinationServer.IpAndPortAsString(), utils.ERROR_FOOTER))
 	}
 	utils.PrintMessage(fmt.Sprintf("Encode protobuf application message for node with IP:PORT : %s.", destinationServer.IpAndPortAsString()))
-	protobufMessage := new(protobuf.Nachricht)
+	protobufMessage := new(protobuf.MessageTwo)
 	protobufMessage.SourceIP = proto.String(sourceServer.IpAddressAsString())
 	protobufMessage.SourcePort = proto.Int(sourceServer.Port())
-	protobufMessage.SourceID = proto.Int(destnationServerId)
-	nachrichtenTyp := protobuf.Nachricht_NachrichtenTyp(protobuf.Nachricht_ANWENDUNGSNACHRICHT)
-	protobufMessage.NachrichtenTyp = &nachrichtenTyp
-	protobufMessage.NachrichtenInhalt = proto.String(messageContent)
-	protobufMessage.ZeitStempel = proto.String(time.Now().UTC().String())
+	protobufMessage.SourceID = proto.Int(sourceServerId)
+	messageType := protobuf.MessageTwo_MessageType(protobuf.MessageTwo_APPLICATIONMESSAGE)
+	protobufMessage.MessageType = &messageType
+	var nodeType protobuf.MessageTwo_NodeType
+	if isCustomer {
+		nodeType = protobuf.MessageTwo_NodeType(protobuf.MessageTwo_CUSTOMER)
+	} else {
+		nodeType = protobuf.MessageTwo_NodeType(protobuf.MessageTwo_COMPANY)
+	}
+	protobufMessage.NodeType = &nodeType
+	protobufMessage.MessageContent = proto.String(messageContent)
+	protobufMessage.Timestamp = proto.String(time.Now().UTC().String())
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {
@@ -47,32 +54,39 @@ func SendProtobufApplicationMessage(sourceServer, destinationServer server.Netwo
 	return nil
 }
 
-// This function sends a control message (KONTROLLNACHRICHT) to the node with
+// This function sends a control message to the node with
 // the given targetId. If the id does not exists, it just returns and does nothing.
-func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkServer, destnationServerId, controlType int, messageContent string) error {
+func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkServer, sourceServerId, controlType int, messageContent string, isCustomer bool) error {
 	if destinationServer.IpAddressAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server has no ip address or port.\n%s\n", destinationServer.IpAndPortAsString(), utils.ERROR_FOOTER))
 	}
 	utils.PrintMessage(fmt.Sprintf("Encode protobuf control message for node with IP:PORT : %s.", destinationServer.IpAndPortAsString()))
-	protobufMessage := new(protobuf.Nachricht)
+	protobufMessage := new(protobuf.MessageTwo)
 	protobufMessage.SourceIP = proto.String(sourceServer.IpAddressAsString())
 	protobufMessage.SourcePort = proto.Int(sourceServer.Port())
-	protobufMessage.SourceID = proto.Int(destnationServerId)
-	nachrichtenTyp := protobuf.Nachricht_NachrichtenTyp(protobuf.Nachricht_KONTROLLNACHRICHT)
-	protobufMessage.NachrichtenTyp = &nachrichtenTyp
-	var kontrollTyp protobuf.Nachricht_KontrollTyp
+	protobufMessage.SourceID = proto.Int(sourceServerId)
+	nachrichtenTyp := protobuf.MessageTwo_MessageType(protobuf.MessageTwo_CONTROLMESSAGE)
+	protobufMessage.MessageType = &nachrichtenTyp
+	var controlTypeProto protobuf.MessageTwo_ControlType
 	switch controlType {
 	case utils.CONTROL_TYPE_INIT:
-		kontrollTyp = protobuf.Nachricht_KontrollTyp(protobuf.Nachricht_INITIALISIEREN)
+		controlTypeProto = protobuf.MessageTwo_ControlType(protobuf.MessageTwo_INITIALIZE)
 	case utils.CONTROL_TYPE_EXIT:
-		kontrollTyp = protobuf.Nachricht_KontrollTyp(protobuf.Nachricht_BEENDEN)
+		controlTypeProto = protobuf.MessageTwo_ControlType(protobuf.MessageTwo_QUIT)
 	default:
-		utils.PrintMessage("No valid controlType given. Assume EXIT.")
-		kontrollTyp = protobuf.Nachricht_KontrollTyp(protobuf.Nachricht_BEENDEN)
+		utils.PrintMessage("No valid controlType given. Assume QUIT.")
+		controlTypeProto = protobuf.MessageTwo_ControlType(protobuf.MessageTwo_QUIT)
 	}
-	protobufMessage.KontrollTyp = &kontrollTyp
-	protobufMessage.NachrichtenInhalt = proto.String(messageContent)
-	protobufMessage.ZeitStempel = proto.String(time.Now().UTC().String())
+	protobufMessage.ControlType = &controlTypeProto
+	var nodeType protobuf.MessageTwo_NodeType
+	if isCustomer {
+		nodeType = protobuf.MessageTwo_NodeType(protobuf.MessageTwo_CUSTOMER)
+	} else {
+		nodeType = protobuf.MessageTwo_NodeType(protobuf.MessageTwo_COMPANY)
+	}
+	protobufMessage.NodeType = &nodeType
+	protobufMessage.MessageContent = proto.String(messageContent)
+	protobufMessage.Timestamp = proto.String(time.Now().UTC().String())
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {
@@ -93,7 +107,7 @@ func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkSe
 
 // This function uses a established connection to parse the data there to the
 // protobuf message and returns it.
-func ReceiveAndParseIncomingProtoufMessage(conn net.Conn) *protobuf.Nachricht {
+func ReceiveAndParseIncomingProtoufMessage(conn net.Conn) *protobuf.MessageTwo {
 	utils.PrintMessage("Incoming message")
 	//Close the connection when the function exits
 	defer conn.Close()
@@ -106,7 +120,7 @@ func ReceiveAndParseIncomingProtoufMessage(conn net.Conn) *protobuf.Nachricht {
 	}
 	utils.PrintMessage("Decoding Protobuf message")
 	//Create an struct pointer of type ProtobufTest.TestMessage struct
-	protodata := new(protobuf.Nachricht)
+	protodata := new(protobuf.MessageTwo)
 	//Convert all the data retrieved into the ProtobufTest.TestMessage struct type
 	err = proto.Unmarshal(data[0:n], protodata)
 	if err != nil {
@@ -119,7 +133,7 @@ func ReceiveAndParseIncomingProtoufMessage(conn net.Conn) *protobuf.Nachricht {
 // This function uses a established connection to parse the data there to the
 // protobuf message. The result gets assigned to the channel instead of
 // returning it.
-func ReceiveAndParseIncomingProtobufMessageToChannel(conn net.Conn, c chan *protobuf.Nachricht) {
+func ReceiveAndParseIncomingProtobufMessageToChannel(conn net.Conn, c chan *protobuf.MessageTwo) {
 	protodata := ReceiveAndParseIncomingProtoufMessage(conn)
 	utils.PrintMessage("Sending decoded message to channel.")
 	//Push the protobuf message into a channel

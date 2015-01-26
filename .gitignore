@@ -14,6 +14,9 @@ exercise2/example/generatedGraphviz.txt
 exercise2/example/generatedGraphviz.jpg
 exercise2/example/nodeOutput*.txt
 
+exercise3/fileManager/fileManager
+exercise3/fileManager/*.txt
+
 generateGraphviz/generateGraphviz
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)

@@ -27,18 +27,21 @@ func init() {
 }
 
 func main() {
-	if len(os.Args) == 1 {
+
+	if filename == "path/to/file.txt" {
+		log.Printf("A filename is required.\n%s\n\n", utils.ERROR_FOOTER)
 		flag.Usage()
 		os.Exit(0)
 	}
+
 	flag.Parse()
 
-	if filename == "path/to/file.txt" {
-		log.Fatalf("A file is required.\n%s\n", utils.ERROR_FOOTER)
-	}
-
-	if writable, err := utils.CheckIfFileIsReadableAndWritebale(filename); !writable {
-		log.Fatalf("%s\n%s\n", err.Error(), utils.ERROR_FOOTER)
+	if exists := utils.CheckIfFileExists(filename); exists {
+		if writable, err := utils.CheckIfFileIsReadableAndWritebale(filename); !writable {
+			log.Fatalf("%s\n%s\n", err.Error(), utils.ERROR_FOOTER)
+		}
+	} else {
+		os.Create(filename)
 	}
 
 	utils.InitializeLogger(logFile, "")

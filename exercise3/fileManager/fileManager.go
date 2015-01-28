@@ -58,7 +58,6 @@ func main() {
 
 	managedFile, err := os.Create(filename)
 	utils.PrintMessage(fmt.Sprintf("Created the file \"%s\"", filename))
-	defer managedFile.Close()
 	if err != nil {
 		log.Fatalf("%s\n%s\n", err.Error(), utils.ERROR_FOOTER)
 	}
@@ -66,8 +65,10 @@ func main() {
 	managedFile.WriteString("000000\n")
 	utils.PrintMessage("Wrote 000000 to the file.")
 
+	managedFile.Close()
+
 	for i := 0; i <= 100; i++ {
-		if numbers, err := utils.IncreaseNumbersFromFirstLine(managedFile, 6); err != nil {
+		if numbers, err := utils.IncreaseNumbersFromFirstLine(filename, 6); err != nil {
 			log.Fatalln(err.Error())
 		} else {
 			fmt.Println(numbers)
@@ -75,8 +76,8 @@ func main() {
 	}
 
 	for i := 0; i <= 101; i++ {
-		if numbers, err := utils.DecreaseNumbersFromFirstLine(managedFile, 6); err != nil {
-			log.Fatalln(err.Error())
+		if numbers, err := utils.DecreaseNumbersFromFirstLine(filename, 6); err != nil {
+			log.Println(err.Error())
 		} else {
 			fmt.Println(numbers)
 		}

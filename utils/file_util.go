@@ -7,13 +7,21 @@ import (
 	"os"
 )
 
-func ReadNumbersFromFirstLine(fileObject *os.File, numberOfValues int) ([]int, error) {
-	if fileObject == nil {
-		return nil, errors.New("The file object was nil.")
+func ReadNumbersFromFirstLine(filename string, numberOfValues int) ([]int, error) {
+	if filename == "" {
+		return nil, errors.New("The filename was empty.")
 	}
 	if numberOfValues < 1 {
 		return nil, errors.New("The number of values must be greater than 0.")
 	}
+	if readable, err := CheckIfFileIsReadable(filename); !readable {
+		return nil, err
+	}
+	fileObject, err := os.OpenFile(filename, os.O_RDONLY, 0777)
+	if err != nil {
+		return nil, err
+	}
+	defer fileObject.Close()
 	buffer := make([]byte, numberOfValues)
 	if _, err := fileObject.ReadAt(buffer[:], 0); err != nil {
 		return nil, err
@@ -31,10 +39,11 @@ func ReadNumbersFromFirstLine(fileObject *os.File, numberOfValues int) ([]int, e
 	return numbers, nil
 }
 
-func IncreaseNumbersFromFirstLine(fileObject *os.File, numberOfValues int) ([]int, error) {
-	var buffer bytes.Buffer
-
-	numbers, err := ReadNumbersFromFirstLine(fileObject, numberOfValues)
+func IncreaseNumbersFromFirstLine(filename string, numberOfValues int) ([]int, error) {
+	if rwPossible, err := CheckIfFileIsReadableAndWritebale(filename); !rwPossible {
+		return nil, err
+	}
+	numbers, err := ReadNumbersFromFirstLine(filename, numberOfValues)
 	if err != nil {
 		return nil, err
 	}
@@ -49,13 +58,17 @@ func IncreaseNumbersFromFirstLine(fileObject *os.File, numberOfValues int) ([]in
 			break
 		}
 	}
-
+	var buffer bytes.Buffer
 	for i := 0; i < len(numbers); i++ {
 		if _, err := buffer.WriteString(string(numbers[i] + 48)); err != nil {
 			return nil, err
 		}
 	}
-
+	fileObject, err := os.OpenFile(filename, os.O_WRONLY, 0777)
+	if err != nil {
+		return nil, err
+	}
+	defer fileObject.Close()
 	if _, err := fileObject.WriteAt(buffer.Bytes(), 0); err != nil {
 		return nil, err
 	} /*else {
@@ -64,14 +77,14 @@ func IncreaseNumbersFromFirstLine(fileObject *os.File, numberOfValues int) ([]in
 	return numbers, nil
 }
 
-func DecreaseNumbersFromFirstLine(fileObject *os.File, numberOfValues int) ([]int, error) {
-	var buffer bytes.Buffer
-
-	numbers, err := ReadNumbersFromFirstLine(fileObject, numberOfValues)
+func DecreaseNumbersFromFirstLine(filename string, numberOfValues int) ([]int, error) {
+	if rwPossible, err := CheckIfFileIsReadableAndWritebale(filename); !rwPossible {
+		return nil, err
+	}
+	numbers, err := ReadNumbersFromFirstLine(filename, numberOfValues)
 	if err != nil {
 		return nil, err
 	}
-
 	minimum := true
 	for i := 0; i < len(numbers); i++ {
 		if numbers[i] != 0 {
@@ -81,7 +94,6 @@ func DecreaseNumbersFromFirstLine(fileObject *os.File, numberOfValues int) ([]in
 	if minimum {
 		return nil, errors.New(fmt.Sprintf("The minimum value for this %d digit number is reached", len(numbers)))
 	}
-
 	for i := len(numbers) - 1; i >= 0; i-- {
 		if numbers[i] == 0 {
 			numbers[i] = 9
@@ -90,13 +102,17 @@ func DecreaseNumbersFromFirstLine(fileObject *os.File, numberOfValues int) ([]in
 			break
 		}
 	}
-
+	var buffer bytes.Buffer
 	for i := 0; i < len(numbers); i++ {
 		if _, err := buffer.WriteString(string(numbers[i] + 48)); err != nil {
 			return nil, err
 		}
 	}
-
+	fileObject, err := os.OpenFile(filename, os.O_WRONLY, 0777)
+	if err != nil {
+		return nil, err
+	}
+	defer fileObject.Close()
 	if _, err := fileObject.WriteAt(buffer.Bytes(), 0); err != nil {
 		return nil, err
 	} /*else {

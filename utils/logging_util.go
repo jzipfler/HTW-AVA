@@ -16,7 +16,7 @@ var (
 // Creates a new logger which uses a buffer where he collects the messages.
 func InitializeLogger(logFile, preface string) {
 	if logFile == "path/to/logfile.txt" || logFile == "" {
-		logger = log.New(os.Stdout, preface, log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+		logger = log.New(os.Stdout, preface, log.Ldate|log.Ltime|log.Lmicroseconds)
 	} else {
 		var err error
 		if exists := CheckIfFileExists(logFile); exists {
@@ -30,7 +30,7 @@ func InitializeLogger(logFile, preface string) {
 			log.Fatalln(err.Error())
 		}
 		logFileObject.WriteString("Begin logging...\n")
-		logger = log.New(&loggingBuffer, preface, log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+		logger = log.New(&loggingBuffer, preface, log.Ldate|log.Ltime|log.Lmicroseconds)
 	}
 }
 

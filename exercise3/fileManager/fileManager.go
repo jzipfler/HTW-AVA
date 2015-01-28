@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/jzipfler/htw-ava/server"
 	"github.com/jzipfler/htw-ava/utils"
@@ -31,13 +32,35 @@ func init() {
 
 func main() {
 
-	flag.Parse()
-
-	if filename == "path/to/file.txt" {
+	var containsAddress, containsPort, containsFilename bool
+	for _, argument := range os.Args {
+		if strings.Contains(argument, "-ipAddress") {
+			containsAddress = true
+		}
+		if strings.Contains(argument, "-port") {
+			containsPort = true
+		}
+		if strings.Contains(argument, "-filename") {
+			containsFilename = true
+		}
+	}
+	if !containsAddress {
+		log.Printf("A IP address is required.\n%s\n\n", utils.ERROR_FOOTER)
+		flag.Usage()
+		os.Exit(0)
+	}
+	if !containsPort {
+		log.Printf("A port number is required.\n%s\n\n", utils.ERROR_FOOTER)
+		flag.Usage()
+		os.Exit(0)
+	}
+	if !containsFilename {
 		log.Printf("A filename is required.\n%s\n\n", utils.ERROR_FOOTER)
 		flag.Usage()
 		os.Exit(0)
 	}
+
+	flag.Parse()
 
 	utils.InitializeLogger(logFile, "")
 	utils.PrintMessage(fmt.Sprintf("File \"%s\" is now managed by this process.", filename))

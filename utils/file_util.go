@@ -120,3 +120,27 @@ func DecreaseNumbersFromFirstLine(filename string, numberOfValues int) ([]int, e
 	}*/
 	return numbers, nil
 }
+
+func AppendStringToFile(filename, stringToAppend string, appendNewLine bool) error {
+	if filename == "" {
+		return errors.New("The filename can not be a empty string.")
+	}
+	if readable, err := CheckIfFileIsWritebale(filename); !readable {
+		return err
+	}
+	fileObject, err := os.OpenFile(filename, os.O_WRONLY|os.O_APPEND, 0777)
+	if err != nil {
+		return err
+	}
+	defer fileObject.Close()
+	if appendNewLine {
+		if _, err := fileObject.WriteString(stringToAppend + "\n"); err != nil {
+			return err
+		}
+	} else {
+		if _, err := fileObject.WriteString(stringToAppend); err != nil {
+			return err
+		}
+	}
+	return nil
+}

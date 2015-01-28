@@ -1,12 +1,18 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 
+	"code.google.com/p/goprotobuf/proto"
+
+	"github.com/jzipfler/htw-ava/protobuf"
 	"github.com/jzipfler/htw-ava/server"
 	"github.com/jzipfler/htw-ava/utils"
 )
@@ -19,6 +25,17 @@ var (
 	port        int
 	managedFile *os.File
 	force       bool
+	fileInUse   bool
+	usedBy      int32
+
+	serverObject server.NetworkServer
+)
+
+const (
+	ACCESS_GRANTED        = iota // 0
+	ACCESS_DENIED                // 1
+	RESOURCE_RELEASED            // 2
+	RESOURCE_NOT_RELEASED        // 3
 )
 
 func init() {
@@ -117,8 +134,7 @@ func main() {
 	}
 	os.Exit(0)
 
-	serverObject := server.New()
-
+	serverObject = server.New()
 	serverObject.SetClientName(managerName)
 	serverObject.SetIpAddressAsString(ipAddress)
 	serverObject.SetPort(port)
@@ -129,6 +145,32 @@ func main() {
 		os.Exit(1)
 	}
 	defer server.StopServer()
+
+	for {
+		receivedMessage := receiveAndParseFilemanagerRequest()
+		var reaction int
+		switch receivedMessage.GetAccessOperation() {
+		case protobuf.FilemanagerRequest_GET:
+			if fileInUse {
+				reaction = ACCESS_DENIED
+			} else {
+				fileInUse = true
+				usedBy = receivedMessage.GetSourceID()
+				reaction = ACCESS_GRANTED
+			}
+		case protobuf.FilemanagerRequest_RELEASE, protobuf.FilemanagerRequest_RENOUNCE:
+			if fileInUse && usedBy == receivedMessage.GetSourceID() {
+				fileInUse = false
+				usedBy = 0
+				reaction = RESOURCE_RELEASED
+			} else {
+				reaction = RESOURCE_NOT_RELEASED
+			}
+		}
+		if err := sendFilemanagerResponse(receivedMessage.GetSourceIP(), int(receivedMessage.GetSourcePort()), reaction); err != nil {
+			log.Fatalln(err)
+		}
+	}
 }
 
 func askForToDeleteFile() bool {
@@ -152,4 +194,76 @@ func askForToDeleteFile() bool {
 		fmt.Println("Please only insert y/j for \"YES\" or n for \"NO\".\n" + utils.ERROR_HEADER)
 	}
 	return false
+}
+
+func receiveAndParseFilemanagerRequest() *protobuf.FilemanagerRequest {
+	//ReceiveMessage blocks until a message comes in
+	conn, err := server.ReceiveMessage()
+	if err != nil {
+		utils.PrintMessage(err)
+	}
+	utils.PrintMessage("Incoming message")
+	//Close the connection when the function exits
+	defer conn.Close()
+	//Create a data buffer of type byte slice with capacity of 4096
+	data := make([]byte, 4096)
+	//Read the data waiting on the connection and put it in the data buffer
+	n, err := conn.Read(data)
+	if err != nil {
+		log.Fatal("Error happened: " + err.Error())
+	}
+	utils.PrintMessage("Decoding Protobuf message")
+	//Create an struct pointer of type ProtobufTest.TestMessage struct
+	protodata := new(protobuf.FilemanagerRequest)
+	//Convert all the data retrieved into the ProtobufTest.TestMessage struct type
+	err = proto.Unmarshal(data[0:n], protodata)
+	if err != nil {
+		log.Fatal("Error happened: " + err.Error())
+	}
+	utils.PrintMessage("Message decoded.")
+	return protodata
+}
+
+func sendFilemanagerResponse(destinationIp string, destinationPort, reaction int) error {
+	if destinationIp == "" || port == 0 {
+		return errors.New(fmt.Sprintf("The target server information has no ip address or port.\n%s:%d\n", destinationIp, destinationPort, utils.ERROR_FOOTER))
+	}
+	ipAddressAndPort := destinationIp + ":" + strconv.Itoa(destinationPort)
+	utils.PrintMessage(fmt.Sprintf("Encode protobuf application message for node with IP:PORT : %s.", ipAddressAndPort))
+	protobufMessage := new(protobuf.FilemanagerResponse)
+	protobufMessage.SourceIP = proto.String(serverObject.IpAddressAsString())
+	protobufMessage.SourcePort = proto.Int(serverObject.Port())
+	var requestReaction protobuf.FilemanagerResponse_RequestReaction
+	switch reaction {
+	case ACCESS_GRANTED:
+		requestReaction = protobuf.FilemanagerResponse_RequestReaction(ACCESS_GRANTED)
+		protobufMessage.Filename = proto.String(filename)
+	case ACCESS_DENIED:
+		requestReaction = protobuf.FilemanagerResponse_RequestReaction(ACCESS_DENIED)
+	case RESOURCE_RELEASED:
+		requestReaction = protobuf.FilemanagerResponse_RequestReaction(RESOURCE_RELEASED)
+	case RESOURCE_NOT_RELEASED:
+		requestReaction = protobuf.FilemanagerResponse_RequestReaction(RESOURCE_NOT_RELEASED)
+	default:
+		utils.PrintMessage("No valid reaction given. Assume DENIE.")
+		requestReaction = protobuf.FilemanagerResponse_RequestReaction(ACCESS_DENIED)
+	}
+	protobufMessage.RequestReaction = &requestReaction
+	//Protobuf message filled with data. Now marshal it.
+	data, err := proto.Marshal(protobufMessage)
+	if err != nil {
+		return err
+	}
+	conn, err := net.Dial("tcp", ipAddressAndPort)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	n, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	utils.PrintMessage(fmt.Sprintf("Application message from %s to %s sent:\n\n%s\n\n", serverObject.String(), ipAddressAndPort, protobufMessage.String()))
+	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
+	return nil
 }

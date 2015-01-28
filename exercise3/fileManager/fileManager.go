@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -82,6 +83,12 @@ func main() {
 	utils.InitializeLogger(logFile, "")
 	utils.PrintMessage(fmt.Sprintf("File \"%s\" is now managed by this process.", filename))
 
+	var err error
+	filename, err = filepath.Abs(filename)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	if exists := utils.CheckIfFileExists(filename); exists {
 		if !force {
 			if deleteIt := askForToDeleteFile(); !deleteIt {
@@ -104,35 +111,7 @@ func main() {
 
 	managedFile.WriteString("000000\n")
 	utils.PrintMessage("Wrote 000000 to the file.")
-
 	managedFile.Close()
-
-	for i := 0; i <= 100; i++ {
-		if numbers, err := utils.IncreaseNumbersFromFirstLine(filename, 6); err != nil {
-			log.Fatalln(err.Error())
-		} else {
-			fmt.Println(numbers)
-		}
-	}
-
-	for i := 0; i <= 101; i++ {
-		if numbers, err := utils.DecreaseNumbersFromFirstLine(filename, 6); err != nil {
-			log.Println(err.Error())
-		} else {
-			fmt.Println(numbers)
-		}
-	}
-
-	if err := utils.AppendStringToFile(filename, "Hier könnte Ihre Werbung stehen", false); err != nil {
-		log.Fatalln(err)
-	}
-	if err := utils.AppendStringToFile(filename, " ::::: Oder vieles mehr!", true); err != nil {
-		log.Fatalln(err)
-	}
-	if err := utils.AppendStringToFile(filename, "Das stimmt!", true); err != nil {
-		log.Fatalln(err)
-	}
-	os.Exit(0)
 
 	serverObject = server.New()
 	serverObject.SetClientName(managerName)

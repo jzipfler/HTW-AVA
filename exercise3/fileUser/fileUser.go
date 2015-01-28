@@ -29,7 +29,9 @@ var (
 	managerA    string
 	managerB    string
 
-	serverObject server.NetworkServer
+	serverObject   server.NetworkServer
+	managerAObject server.NetworkServer
+	managerBObject server.NetworkServer
 )
 
 const (
@@ -87,16 +89,19 @@ func main() {
 
 	utils.InitializeLogger(logFile, "")
 
-	managerAObject, err := parseManagerInformation(managerA)
+	var err error
+	managerAObject, err = parseManagerInformation(managerA)
 	if err != nil {
 		log.Fatalf("%s\n%s\n\n", err.Error(), utils.ERROR_FOOTER)
 	}
 	managerAObject.SetClientName("ManagerA")
-	managerBObject, err := parseManagerInformation(managerB)
+	utils.PrintMessage(fmt.Sprint("ManagerA: ", managerA))
+	managerBObject, err = parseManagerInformation(managerB)
 	if err != nil {
 		log.Fatalf("%s\n%s\n\n", err.Error(), utils.ERROR_FOOTER)
 	}
 	managerBObject.SetClientName("ManagerB")
+	utils.PrintMessage(fmt.Sprint("ManagerB: ", managerB))
 
 	processId = os.Getpid()
 
@@ -177,7 +182,7 @@ func receiveAndParseFilemanagerResponse() (*protobuf.FilemanagerResponse, error)
 
 func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reaction int) error {
 	if destinationFileManager.IpAndPortAsString() == "" {
-		return errors.New(fmt.Sprintf("The target server information has no ip address or port.\n%s\n", destinationFileManager.IpAndPortAsString(), utils.ERROR_FOOTER))
+		return errors.New(fmt.Sprintf("The target server information has no ip address or port.\n%s\n", utils.ERROR_FOOTER))
 	}
 	utils.PrintMessage(fmt.Sprintf("Encode protobuf application message for node with IP:PORT : %s.", destinationFileManager.IpAndPortAsString()))
 	protobufMessage := new(protobuf.FilemanagerRequest)
@@ -218,8 +223,9 @@ func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reactio
 func workerFunctionForEvenProcesses() {
 	//Get write access on A then on B
 	//Increase A and decrease B
-	if err := sendFilemanagerRequest(server.New(), GET); err != nil {
+	if err := sendFilemanagerRequest(managerAObject, GET); err != nil {
 		utils.PrintMessage(err)
+		return
 	}
 	receivedMessageFromManagerA, err := receiveAndParseFilemanagerResponse()
 	if err != nil {
@@ -231,7 +237,7 @@ func workerFunctionForEvenProcesses() {
 	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
 		fallthrough
 	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		log.Fatalln("Received wrong answer from the server.")
+		log.Fatalln("Received wrong answer from manager A.")
 	case protobuf.FilemanagerResponse_ACCESS_DENIED:
 		fallthrough
 	default:
@@ -239,7 +245,7 @@ func workerFunctionForEvenProcesses() {
 		time.Sleep(1 * time.Second)
 		return
 	}
-	if err := sendFilemanagerRequest(server.New(), GET); err != nil {
+	if err := sendFilemanagerRequest(managerBObject, GET); err != nil {
 		utils.PrintMessage(err)
 	}
 	receivedMessageFromManagerB, err := receiveAndParseFilemanagerResponse()
@@ -248,11 +254,11 @@ func workerFunctionForEvenProcesses() {
 	}
 	switch receivedMessageFromManagerB.GetRequestReaction() {
 	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-		utils.PrintMessage("Access granted from manager A")
+		utils.PrintMessage("Access granted from manager B")
 	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
 		fallthrough
 	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		log.Fatalln("Received wrong answer from the server.")
+		log.Fatalln("Received wrong answer from manager B.")
 	case protobuf.FilemanagerResponse_ACCESS_DENIED:
 		fallthrough
 	default:
@@ -260,14 +266,14 @@ func workerFunctionForEvenProcesses() {
 		time.Sleep(1 * time.Second)
 		return
 	}
-	utils.IncreaseNumbersFromFirstLine(*receivedMessageFromManagerA.Filename, 6)
-	utils.AppendStringToFile(*receivedMessageFromManagerB.Filename, string(processId), true)
-	utils.DecreaseNumbersFromFirstLine(*receivedMessageFromManagerB.Filename, 6)
-	utils.AppendStringToFile(*receivedMessageFromManagerA.Filename, string(processId), true)
-	if err := sendFilemanagerRequest(server.New(), RELEASE); err != nil {
+	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
+	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
+	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
+	utils.AppendStringToFile(receivedMessageFromManagerA.GetFilename(), strconv.Itoa(processId), true)
+	if err := sendFilemanagerRequest(managerAObject, RELEASE); err != nil {
 		utils.PrintMessage(err)
 	}
-	receivedMessageFromManagerB, err = receiveAndParseFilemanagerResponse()
+	receivedMessageFromManagerA, err = receiveAndParseFilemanagerResponse()
 	if err != nil {
 		utils.PrintMessage(err)
 	}
@@ -283,14 +289,14 @@ func workerFunctionForEvenProcesses() {
 	default:
 		log.Fatalln("Received wrong answer from the server.")
 	}
-	if err := sendFilemanagerRequest(server.New(), RELEASE); err != nil {
+	if err := sendFilemanagerRequest(managerBObject, RELEASE); err != nil {
 		utils.PrintMessage(err)
 	}
 	receivedMessageFromManagerB, err = receiveAndParseFilemanagerResponse()
 	if err != nil {
 		utils.PrintMessage(err)
 	}
-	switch receivedMessageFromManagerA.GetRequestReaction() {
+	switch receivedMessageFromManagerB.GetRequestReaction() {
 	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
 		utils.PrintMessage("Resource from manager B successfully released.")
 	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
@@ -307,8 +313,9 @@ func workerFunctionForEvenProcesses() {
 func workerFunctionForUnevenProcesses() {
 	//Get write access on B then on A
 	//Increase B and decrease A
-	if err := sendFilemanagerRequest(server.New(), GET); err != nil {
+	if err := sendFilemanagerRequest(managerBObject, GET); err != nil {
 		utils.PrintMessage(err)
+		return
 	}
 	receivedMessageFromManagerB, err := receiveAndParseFilemanagerResponse()
 	if err != nil {
@@ -320,15 +327,15 @@ func workerFunctionForUnevenProcesses() {
 	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
 		fallthrough
 	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		log.Fatalln("Received wrong answer from the server.")
+		log.Fatalln("Received wrong answer from manager A.")
 	case protobuf.FilemanagerResponse_ACCESS_DENIED:
 		fallthrough
 	default:
-		utils.PrintMessage("Access denied from manager A")
+		utils.PrintMessage("Access denied from manager B")
 		time.Sleep(1 * time.Second)
 		return
 	}
-	if err := sendFilemanagerRequest(server.New(), GET); err != nil {
+	if err := sendFilemanagerRequest(managerAObject, GET); err != nil {
 		utils.PrintMessage(err)
 	}
 	receivedMessageFromManagerA, err := receiveAndParseFilemanagerResponse()
@@ -341,7 +348,7 @@ func workerFunctionForUnevenProcesses() {
 	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
 		fallthrough
 	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		log.Fatalln("Received wrong answer from the server.")
+		log.Fatalln("Received wrong answer from manager B.")
 	case protobuf.FilemanagerResponse_ACCESS_DENIED:
 		fallthrough
 	default:
@@ -349,11 +356,11 @@ func workerFunctionForUnevenProcesses() {
 		time.Sleep(1 * time.Second)
 		return
 	}
-	utils.IncreaseNumbersFromFirstLine(*receivedMessageFromManagerB.Filename, 6)
-	utils.AppendStringToFile(*receivedMessageFromManagerB.Filename, string(processId), true)
-	utils.DecreaseNumbersFromFirstLine(*receivedMessageFromManagerA.Filename, 6)
-	utils.AppendStringToFile(*receivedMessageFromManagerA.Filename, string(processId), true)
-	if err := sendFilemanagerRequest(server.New(), RELEASE); err != nil {
+	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
+	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
+	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
+	utils.AppendStringToFile(receivedMessageFromManagerA.GetFilename(), strconv.Itoa(processId), true)
+	if err := sendFilemanagerRequest(managerBObject, RELEASE); err != nil {
 		utils.PrintMessage(err)
 	}
 	receivedMessageFromManagerB, err = receiveAndParseFilemanagerResponse()
@@ -372,7 +379,7 @@ func workerFunctionForUnevenProcesses() {
 	default:
 		log.Fatalln("Received wrong answer from the server.")
 	}
-	if err := sendFilemanagerRequest(server.New(), RELEASE); err != nil {
+	if err := sendFilemanagerRequest(managerAObject, RELEASE); err != nil {
 		utils.PrintMessage(err)
 	}
 	receivedMessageFromManagerA, err = receiveAndParseFilemanagerResponse()

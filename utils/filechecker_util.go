@@ -24,6 +24,7 @@ func CheckIfFileIsReadable(pathToFile string) (bool, error) {
 		return false, errors.New("The file does not exists.")
 	}
 	if _, err := os.Open(pathToFile); os.IsPermission(err) {
+		//TODO: This case it not a error so only false, nil should be returned.
 		return false, errors.New("The file " + pathToFile + " is not readable.")
 	}
 	return true, nil

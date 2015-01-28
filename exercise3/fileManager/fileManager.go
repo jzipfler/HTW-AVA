@@ -83,6 +83,15 @@ func main() {
 		}
 	}
 
+	if err := utils.AppendStringToFile(filename, "Hier könnte Ihre Werbung stehen", false); err != nil {
+		log.Fatalln(err)
+	}
+	if err := utils.AppendStringToFile(filename, " ::::: Oder vieles mehr!", true); err != nil {
+		log.Fatalln(err)
+	}
+	if err := utils.AppendStringToFile(filename, "Das stimmt!", true); err != nil {
+		log.Fatalln(err)
+	}
 	os.Exit(0)
 
 	serverObject := server.New()

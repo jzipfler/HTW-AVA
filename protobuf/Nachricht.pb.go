@@ -230,6 +230,45 @@ func (x *FilemanagerRequest_AccessOperation) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type FilemanagerResponse_RequestReaction int32
+
+const (
+	FilemanagerResponse_ACCESS_GRANTED        FilemanagerResponse_RequestReaction = 0
+	FilemanagerResponse_ACCESS_DENIED         FilemanagerResponse_RequestReaction = 1
+	FilemanagerResponse_RESOURCE_RELEASED     FilemanagerResponse_RequestReaction = 2
+	FilemanagerResponse_RESOURCE_NOT_RELEASED FilemanagerResponse_RequestReaction = 3
+)
+
+var FilemanagerResponse_RequestReaction_name = map[int32]string{
+	0: "ACCESS_GRANTED",
+	1: "ACCESS_DENIED",
+	2: "RESOURCE_RELEASED",
+	3: "RESOURCE_NOT_RELEASED",
+}
+var FilemanagerResponse_RequestReaction_value = map[string]int32{
+	"ACCESS_GRANTED":        0,
+	"ACCESS_DENIED":         1,
+	"RESOURCE_RELEASED":     2,
+	"RESOURCE_NOT_RELEASED": 3,
+}
+
+func (x FilemanagerResponse_RequestReaction) Enum() *FilemanagerResponse_RequestReaction {
+	p := new(FilemanagerResponse_RequestReaction)
+	*p = x
+	return p
+}
+func (x FilemanagerResponse_RequestReaction) String() string {
+	return proto.EnumName(FilemanagerResponse_RequestReaction_name, int32(x))
+}
+func (x *FilemanagerResponse_RequestReaction) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(FilemanagerResponse_RequestReaction_value, data, "FilemanagerResponse_RequestReaction")
+	if err != nil {
+		return err
+	}
+	*x = FilemanagerResponse_RequestReaction(value)
+	return nil
+}
+
 // Nachrichtendefinition fuer Aufgabe 1.
 type Nachricht struct {
 	SourceIP          *string                   `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
@@ -416,11 +455,11 @@ func (m *FilemanagerRequest) GetAccessOperation() FilemanagerRequest_AccessOpera
 }
 
 type FilemanagerResponse struct {
-	SourceIP         *string `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
-	SourcePort       *int32  `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
-	SourceID         *int32  `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
-	AccessGranted    *bool   `protobuf:"varint,4,req,name=accessGranted" json:"accessGranted,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	SourceIP         *string                              `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort       *int32                               `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	RequestReaction  *FilemanagerResponse_RequestReaction `protobuf:"varint,3,req,name=requestReaction,enum=protobuf.FilemanagerResponse_RequestReaction" json:"requestReaction,omitempty"`
+	Filename         *string                              `protobuf:"bytes,4,opt,name=filename" json:"filename,omitempty"`
+	XXX_unrecognized []byte                               `json:"-"`
 }
 
 func (m *FilemanagerResponse) Reset()         { *m = FilemanagerResponse{} }
@@ -441,18 +480,18 @@ func (m *FilemanagerResponse) GetSourcePort() int32 {
 	return 0
 }
 
-func (m *FilemanagerResponse) GetSourceID() int32 {
-	if m != nil && m.SourceID != nil {
-		return *m.SourceID
+func (m *FilemanagerResponse) GetRequestReaction() FilemanagerResponse_RequestReaction {
+	if m != nil && m.RequestReaction != nil {
+		return *m.RequestReaction
 	}
-	return 0
+	return FilemanagerResponse_ACCESS_GRANTED
 }
 
-func (m *FilemanagerResponse) GetAccessGranted() bool {
-	if m != nil && m.AccessGranted != nil {
-		return *m.AccessGranted
+func (m *FilemanagerResponse) GetFilename() string {
+	if m != nil && m.Filename != nil {
+		return *m.Filename
 	}
-	return false
+	return ""
 }
 
 func init() {
@@ -462,4 +501,5 @@ func init() {
 	proto.RegisterEnum("protobuf.MessageTwo_ControlType", MessageTwo_ControlType_name, MessageTwo_ControlType_value)
 	proto.RegisterEnum("protobuf.MessageTwo_NodeType", MessageTwo_NodeType_name, MessageTwo_NodeType_value)
 	proto.RegisterEnum("protobuf.FilemanagerRequest_AccessOperation", FilemanagerRequest_AccessOperation_name, FilemanagerRequest_AccessOperation_value)
+	proto.RegisterEnum("protobuf.FilemanagerResponse_RequestReaction", FilemanagerResponse_RequestReaction_name, FilemanagerResponse_RequestReaction_value)
 }

@@ -70,14 +70,21 @@ message FilemanagerRequest {
 
 	required string sourceIP = 1;
 	required int32 sourcePort = 2;
-	required int32 sourceID = 3;
+  required int32 sourceID = 3;
 	required AccessOperation accessOperation = 4;
 }
 
 message FilemanagerResponse {
 	
+	enum RequestReaction {
+		ACCESS_GRANTED = 0;
+    ACCESS_DENIED = 1;
+    RESOURCE_RELEASED = 2;
+    RESOURCE_NOT_RELEASED = 3;
+  	}
+
 	required string sourceIP = 1;
 	required int32 sourcePort = 2;
-	required int32 sourceID = 3;
-	required bool accessGranted = 4;
+  	required RequestReaction requestReaction = 3;
+    optional string filename = 4;
 }

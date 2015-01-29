@@ -94,4 +94,5 @@ message AccessControl {
 	required string sourceIP = 1;
 	required int32 sourcePort = 2;
 	required int32 sourceID = 3;
+	required bool gotDeadlock = 4;
 }

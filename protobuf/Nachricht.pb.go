@@ -507,6 +507,7 @@ type AccessControl struct {
 	SourceIP         *string `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
 	SourcePort       *int32  `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
 	SourceID         *int32  `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
+	GotDeadlock      *bool   `protobuf:"varint,4,req,name=gotDeadlock" json:"gotDeadlock,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -533,6 +534,13 @@ func (m *AccessControl) GetSourceID() int32 {
 		return *m.SourceID
 	}
 	return 0
+}
+
+func (m *AccessControl) GetGotDeadlock() bool {
+	if m != nil && m.GotDeadlock != nil {
+		return *m.GotDeadlock
+	}
+	return false
 }
 
 func init() {

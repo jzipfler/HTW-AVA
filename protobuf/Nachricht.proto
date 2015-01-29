@@ -89,3 +89,9 @@ message FilemanagerResponse {
     optional string filename = 4;
 	optional string processThatUsesResource = 5; //Uses the format "IPADDRESS:PORT"
 }
+
+message AccessControl {
+	required string sourceIP = 1;
+	required int32 sourcePort = 2;
+	required int32 sourceID = 3;
+}

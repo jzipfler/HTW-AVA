@@ -13,6 +13,7 @@ It has these top-level messages:
 	MessageTwo
 	FilemanagerRequest
 	FilemanagerResponse
+	AccessControl
 */
 package protobuf
 
@@ -500,6 +501,38 @@ func (m *FilemanagerResponse) GetProcessThatUsesResource() string {
 		return *m.ProcessThatUsesResource
 	}
 	return ""
+}
+
+type AccessControl struct {
+	SourceIP         *string `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort       *int32  `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	SourceID         *int32  `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *AccessControl) Reset()         { *m = AccessControl{} }
+func (m *AccessControl) String() string { return proto.CompactTextString(m) }
+func (*AccessControl) ProtoMessage()    {}
+
+func (m *AccessControl) GetSourceIP() string {
+	if m != nil && m.SourceIP != nil {
+		return *m.SourceIP
+	}
+	return ""
+}
+
+func (m *AccessControl) GetSourcePort() int32 {
+	if m != nil && m.SourcePort != nil {
+		return *m.SourcePort
+	}
+	return 0
+}
+
+func (m *AccessControl) GetSourceID() int32 {
+	if m != nil && m.SourceID != nil {
+		return *m.SourceID
+	}
+	return 0
 }
 
 func init() {

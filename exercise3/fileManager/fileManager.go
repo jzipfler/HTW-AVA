@@ -19,15 +19,16 @@ import (
 )
 
 var (
-	filename    string
-	managerName string
-	logFile     string
-	ipAddress   string
-	port        int
-	managedFile *os.File
-	force       bool
-	fileInUse   bool
-	usedBy      int32
+	filename        string
+	managerName     string
+	logFile         string
+	ipAddress       string
+	port            int
+	managedFile     *os.File
+	force           bool
+	fileInUse       bool
+	usedById        int32
+	usedByIpAndPort string
 
 	serverObject server.NetworkServer
 )
@@ -134,13 +135,15 @@ func main() {
 				reaction = ACCESS_DENIED
 			} else {
 				fileInUse = true
-				usedBy = receivedMessage.GetSourceID()
+				usedByIpAndPort = fmt.Sprintf("%s:%d", receivedMessage.GetSourceIP(), int(receivedMessage.GetSourcePort()))
+				usedById = receivedMessage.GetSourceID()
 				reaction = ACCESS_GRANTED
 			}
 		case protobuf.FilemanagerRequest_RELEASE, protobuf.FilemanagerRequest_RENOUNCE:
-			if fileInUse && usedBy == receivedMessage.GetSourceID() {
+			if fileInUse && usedById == receivedMessage.GetSourceID() {
 				fileInUse = false
-				usedBy = 0
+				usedById = 0
+				usedByIpAndPort = ""
 				reaction = RESOURCE_RELEASED
 			} else {
 				reaction = RESOURCE_NOT_RELEASED
@@ -228,6 +231,9 @@ func sendFilemanagerResponse(destinationIp string, destinationPort, reaction int
 		requestReaction = protobuf.FilemanagerResponse_RequestReaction(ACCESS_DENIED)
 	}
 	protobufMessage.RequestReaction = &requestReaction
+	if usedByIpAndPort != "" {
+		protobufMessage.ProcessThatUsesResource = proto.String(usedByIpAndPort)
+	}
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {

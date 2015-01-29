@@ -223,179 +223,145 @@ func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reactio
 func workerFunctionForEvenProcesses() {
 	//Get write access on A then on B
 	//Increase A and decrease B
-	if err := sendFilemanagerRequest(managerAObject, GET); err != nil {
-		utils.PrintMessage(err)
-		return
-	}
-	receivedMessageFromManagerA, err := receiveAndParseFilemanagerResponse()
+	receivedMessageFromManagerA, err := waitForAccessFromManagerA()
 	if err != nil {
-		utils.PrintMessage(err)
+		log.Fatalln(err)
 	}
-	switch receivedMessageFromManagerA.GetRequestReaction() {
-	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-		utils.PrintMessage("Access granted from manager A")
-	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-		fallthrough
-	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		log.Fatalln("Received wrong answer from manager A.")
-	case protobuf.FilemanagerResponse_ACCESS_DENIED:
-		fallthrough
-	default:
-		utils.PrintMessage("Access denied from manager A")
-		time.Sleep(1 * time.Second)
-		return
-	}
-	if err := sendFilemanagerRequest(managerBObject, GET); err != nil {
-		utils.PrintMessage(err)
-	}
-	receivedMessageFromManagerB, err := receiveAndParseFilemanagerResponse()
+	receivedMessageFromManagerB, err := waitForAccessFromManagerB()
 	if err != nil {
-		utils.PrintMessage(err)
-	}
-	switch receivedMessageFromManagerB.GetRequestReaction() {
-	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-		utils.PrintMessage("Access granted from manager B")
-	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-		fallthrough
-	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		log.Fatalln("Received wrong answer from manager B.")
-	case protobuf.FilemanagerResponse_ACCESS_DENIED:
-		fallthrough
-	default:
-		utils.PrintMessage("Access denied from manager A")
-		time.Sleep(1 * time.Second)
-		return
+		log.Fatalln(err)
 	}
 	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
 	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerA.GetFilename(), strconv.Itoa(processId), true)
-	if err := sendFilemanagerRequest(managerAObject, RELEASE); err != nil {
-		utils.PrintMessage(err)
-	}
-	receivedMessageFromManagerA, err = receiveAndParseFilemanagerResponse()
-	if err != nil {
-		utils.PrintMessage(err)
-	}
-	switch receivedMessageFromManagerA.GetRequestReaction() {
-	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-		utils.PrintMessage("Resource from manager A successfully released.")
-	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-		fallthrough
-	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		fallthrough
-	case protobuf.FilemanagerResponse_ACCESS_DENIED:
-		fallthrough
-	default:
-		log.Fatalln("Received wrong answer from the server.")
-	}
-	if err := sendFilemanagerRequest(managerBObject, RELEASE); err != nil {
-		utils.PrintMessage(err)
-	}
-	receivedMessageFromManagerB, err = receiveAndParseFilemanagerResponse()
-	if err != nil {
-		utils.PrintMessage(err)
-	}
-	switch receivedMessageFromManagerB.GetRequestReaction() {
-	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-		utils.PrintMessage("Resource from manager B successfully released.")
-	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-		fallthrough
-	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		fallthrough
-	case protobuf.FilemanagerResponse_ACCESS_DENIED:
-		fallthrough
-	default:
-		log.Fatalln("Received wrong answer from the server.")
-	}
+	releaseResourceFromManagerA()
+	releaseResourceFromManagerB()
 }
 
 func workerFunctionForUnevenProcesses() {
 	//Get write access on B then on A
 	//Increase B and decrease A
-	if err := sendFilemanagerRequest(managerBObject, GET); err != nil {
-		utils.PrintMessage(err)
-		return
-	}
-	receivedMessageFromManagerB, err := receiveAndParseFilemanagerResponse()
+	receivedMessageFromManagerB, err := waitForAccessFromManagerB()
 	if err != nil {
-		utils.PrintMessage(err)
+		log.Fatalln(err)
 	}
-	switch receivedMessageFromManagerB.GetRequestReaction() {
-	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-		utils.PrintMessage("Access granted from manager A")
-	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-		fallthrough
-	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		log.Fatalln("Received wrong answer from manager A.")
-	case protobuf.FilemanagerResponse_ACCESS_DENIED:
-		fallthrough
-	default:
-		utils.PrintMessage("Access denied from manager B")
-		time.Sleep(1 * time.Second)
-		return
-	}
-	if err := sendFilemanagerRequest(managerAObject, GET); err != nil {
-		utils.PrintMessage(err)
-	}
-	receivedMessageFromManagerA, err := receiveAndParseFilemanagerResponse()
+	receivedMessageFromManagerA, err := waitForAccessFromManagerA()
 	if err != nil {
-		utils.PrintMessage(err)
-	}
-	switch receivedMessageFromManagerA.GetRequestReaction() {
-	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-		utils.PrintMessage("Access granted from manager A")
-	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-		fallthrough
-	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		log.Fatalln("Received wrong answer from manager B.")
-	case protobuf.FilemanagerResponse_ACCESS_DENIED:
-		fallthrough
-	default:
-		utils.PrintMessage("Access denied from manager A")
-		time.Sleep(1 * time.Second)
-		return
+		log.Fatalln(err)
 	}
 	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
 	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerA.GetFilename(), strconv.Itoa(processId), true)
-	if err := sendFilemanagerRequest(managerBObject, RELEASE); err != nil {
-		utils.PrintMessage(err)
+	releaseResourceFromManagerB()
+	releaseResourceFromManagerA()
+}
+
+func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
+	for {
+		if err := sendFilemanagerRequest(managerAObject, GET); err != nil {
+			return nil, err
+		}
+		receivedMessageFromManagerA, err := receiveAndParseFilemanagerResponse()
+		if err != nil {
+			return nil, err
+		}
+		switch receivedMessageFromManagerA.GetRequestReaction() {
+		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
+			utils.PrintMessage("Access granted from manager A")
+			return receivedMessageFromManagerA, nil
+		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
+			fallthrough
+		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
+			log.Fatalln("Received wrong answer from manager B.")
+		case protobuf.FilemanagerResponse_ACCESS_DENIED:
+			fallthrough
+		default:
+			utils.PrintMessage("Access denied from manager A")
+			time.Sleep(3 * time.Second)
+			continue
+		}
 	}
-	receivedMessageFromManagerB, err = receiveAndParseFilemanagerResponse()
-	if err != nil {
-		utils.PrintMessage(err)
+	return nil, errors.New("This error should never happen")
+}
+
+func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
+	for {
+		if err := sendFilemanagerRequest(managerBObject, GET); err != nil {
+			return nil, err
+		}
+		receivedMessageFromManagerB, err := receiveAndParseFilemanagerResponse()
+		if err != nil {
+			return nil, err
+		}
+		switch receivedMessageFromManagerB.GetRequestReaction() {
+		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
+			utils.PrintMessage("Access granted from manager A")
+			return receivedMessageFromManagerB, nil
+		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
+			fallthrough
+		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
+			log.Fatalln("Received wrong answer from manager A.")
+		case protobuf.FilemanagerResponse_ACCESS_DENIED:
+			fallthrough
+		default:
+			utils.PrintMessage("Access denied from manager B")
+			time.Sleep(3 * time.Second)
+			continue
+		}
 	}
-	switch receivedMessageFromManagerB.GetRequestReaction() {
-	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-		utils.PrintMessage("Resource from manager B successfully released.")
-	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-		fallthrough
-	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		fallthrough
-	case protobuf.FilemanagerResponse_ACCESS_DENIED:
-		fallthrough
-	default:
-		log.Fatalln("Received wrong answer from the server.")
+	return nil, errors.New("This error should never happen")
+}
+
+func releaseResourceFromManagerA() error {
+	for {
+		if err := sendFilemanagerRequest(managerAObject, RELEASE); err != nil {
+			return err
+		}
+		receivedMessageFromManagerA, err := receiveAndParseFilemanagerResponse()
+		if err != nil {
+			return err
+		}
+		switch receivedMessageFromManagerA.GetRequestReaction() {
+		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
+			utils.PrintMessage("Resource from manager A successfully released.")
+			return nil
+		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
+			fallthrough
+		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
+			fallthrough
+		case protobuf.FilemanagerResponse_ACCESS_DENIED:
+			fallthrough
+		default:
+			log.Fatalln("Received wrong answer from the server.")
+		}
 	}
-	if err := sendFilemanagerRequest(managerAObject, RELEASE); err != nil {
-		utils.PrintMessage(err)
+	return errors.New("This error should never happen")
+}
+
+func releaseResourceFromManagerB() error {
+	for {
+		if err := sendFilemanagerRequest(managerBObject, RELEASE); err != nil {
+			return err
+		}
+		receivedMessageFromManagerB, err := receiveAndParseFilemanagerResponse()
+		if err != nil {
+			return err
+		}
+		switch receivedMessageFromManagerB.GetRequestReaction() {
+		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
+			utils.PrintMessage("Resource from manager B successfully released.")
+			return nil
+		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
+			fallthrough
+		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
+			fallthrough
+		case protobuf.FilemanagerResponse_ACCESS_DENIED:
+			fallthrough
+		default:
+			log.Fatalln("Received wrong answer from the server.")
+		}
 	}
-	receivedMessageFromManagerA, err = receiveAndParseFilemanagerResponse()
-	if err != nil {
-		utils.PrintMessage(err)
-	}
-	switch receivedMessageFromManagerA.GetRequestReaction() {
-	case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-		utils.PrintMessage("Resource from manager A successfully released.")
-	case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-		fallthrough
-	case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-		fallthrough
-	case protobuf.FilemanagerResponse_ACCESS_DENIED:
-		fallthrough
-	default:
-		log.Fatalln("Received wrong answer from the server.")
-	}
+	return errors.New("This error should never happen")
 }

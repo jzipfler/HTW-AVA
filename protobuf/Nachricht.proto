@@ -87,4 +87,5 @@ message FilemanagerResponse {
 	required int32 sourcePort = 2;
   	required RequestReaction requestReaction = 3;
     optional string filename = 4;
+	optional string processThatUsesResource = 5; //Uses the format "IPADDRESS:PORT"
 }

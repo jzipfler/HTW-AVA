@@ -455,11 +455,12 @@ func (m *FilemanagerRequest) GetAccessOperation() FilemanagerRequest_AccessOpera
 }
 
 type FilemanagerResponse struct {
-	SourceIP         *string                              `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
-	SourcePort       *int32                               `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
-	RequestReaction  *FilemanagerResponse_RequestReaction `protobuf:"varint,3,req,name=requestReaction,enum=protobuf.FilemanagerResponse_RequestReaction" json:"requestReaction,omitempty"`
-	Filename         *string                              `protobuf:"bytes,4,opt,name=filename" json:"filename,omitempty"`
-	XXX_unrecognized []byte                               `json:"-"`
+	SourceIP                *string                              `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort              *int32                               `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	RequestReaction         *FilemanagerResponse_RequestReaction `protobuf:"varint,3,req,name=requestReaction,enum=protobuf.FilemanagerResponse_RequestReaction" json:"requestReaction,omitempty"`
+	Filename                *string                              `protobuf:"bytes,4,opt,name=filename" json:"filename,omitempty"`
+	ProcessThatUsesResource *string                              `protobuf:"bytes,5,opt,name=processThatUsesResource" json:"processThatUsesResource,omitempty"`
+	XXX_unrecognized        []byte                               `json:"-"`
 }
 
 func (m *FilemanagerResponse) Reset()         { *m = FilemanagerResponse{} }
@@ -490,6 +491,13 @@ func (m *FilemanagerResponse) GetRequestReaction() FilemanagerResponse_RequestRe
 func (m *FilemanagerResponse) GetFilename() string {
 	if m != nil && m.Filename != nil {
 		return *m.Filename
+	}
+	return ""
+}
+
+func (m *FilemanagerResponse) GetProcessThatUsesResource() string {
+	if m != nil && m.ProcessThatUsesResource != nil {
+		return *m.ProcessThatUsesResource
 	}
 	return ""
 }

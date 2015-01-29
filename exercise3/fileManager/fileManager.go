@@ -131,19 +131,23 @@ func main() {
 		switch receivedMessage.GetAccessOperation() {
 		case protobuf.FilemanagerRequest_GET:
 			if fileInUse {
+				utils.PrintMessage(fmt.Sprintf("Access denied, file in use by %d-%s", usedById, usedByIpAndPort))
 				reaction = ACCESS_DENIED
 			} else {
 				fileInUse = true
 				usedByIpAndPort = fmt.Sprintf("%s:%d", receivedMessage.GetSourceIP(), int(receivedMessage.GetSourcePort()))
 				usedById = receivedMessage.GetSourceID()
+				utils.PrintMessage(fmt.Sprintf("Access granted, file is now in use by %d-%s", usedById, usedByIpAndPort))
 				reaction = ACCESS_GRANTED
 			}
 		case protobuf.FilemanagerRequest_RELEASE, protobuf.FilemanagerRequest_RENOUNCE:
+			utils.PrintMessage(fmt.Sprintf("Release/Renounce requested, file is in use by %d-%s", usedById, usedByIpAndPort))
 			if fileInUse && usedById == receivedMessage.GetSourceID() {
 				fileInUse = false
 				usedById = 0
 				usedByIpAndPort = ""
 				reaction = RESOURCE_RELEASED
+				utils.PrintMessage("File successfully released/renounced.")
 			} else {
 				reaction = RESOURCE_NOT_RELEASED
 			}

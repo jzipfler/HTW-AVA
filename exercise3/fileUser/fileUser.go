@@ -190,7 +190,7 @@ func receiveAndParseFilemanagerResponse() (*protobuf.FilemanagerResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	utils.PrintMessage("FilemanagerResponse decoded.")
+	utils.PrintMessage(fmt.Sprintf("FilemanagerResponse decoded.\n\n%s\n\n", protodata))
 	return protodata, nil
 }
 
@@ -253,8 +253,8 @@ func workerFunctionForEvenProcesses() {
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
 	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerA.GetFilename(), strconv.Itoa(processId), true)
-	releaseResourceFromManagerA()
-	releaseResourceFromManagerB()
+	releaseResourceFromManager(MANAGER_A)
+	releaseResourceFromManager(MANAGER_B)
 }
 
 func workerFunctionForUnevenProcesses() {
@@ -276,8 +276,8 @@ func workerFunctionForUnevenProcesses() {
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
 	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerA.GetFilename(), strconv.Itoa(processId), true)
-	releaseResourceFromManagerB()
-	releaseResourceFromManagerA()
+	releaseResourceFromManager(MANAGER_B)
+	releaseResourceFromManager(MANAGER_A)
 }
 
 func waitForAccessFromManagerA(handleDeny bool) (*protobuf.FilemanagerResponse, error) {
@@ -285,9 +285,17 @@ func waitForAccessFromManagerA(handleDeny bool) (*protobuf.FilemanagerResponse, 
 		if err := sendFilemanagerRequest(managerAObject, GET); err != nil {
 			return nil, err
 		}
-		receivedMessageFromManagerA, err := receiveAndParseFilemanagerResponse()
-		if err != nil {
-			return nil, err
+		var receivedMessageFromManagerA *protobuf.FilemanagerResponse
+		var err error
+		if handleDeny {
+			if receivedMessageFromManagerA = receiveAccessControlOrFilemanagerResponse(); receivedMessageFromManagerA == nil {
+				continue
+			}
+		} else {
+			receivedMessageFromManagerA, err = receiveAndParseFilemanagerResponse()
+			if err != nil {
+				return nil, err
+			}
 		}
 		switch receivedMessageFromManagerA.GetRequestReaction() {
 		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
@@ -314,7 +322,7 @@ func waitForAccessFromManagerA(handleDeny bool) (*protobuf.FilemanagerResponse, 
 			//An other process uses the resource (maybe deadlock)
 		}
 		if handleDeny {
-			if resourceReleased := tryRecoveringPossibleDeadlock(receivedMessageFromManagerA.GetProcessThatUsesResource(), MANAGER_A); resourceReleased {
+			if resourceReleased := tryRecoveringPossibleDeadlock(receivedMessageFromManagerA.GetProcessThatUsesResource(), MANAGER_B); resourceReleased {
 				return nil, errors.New("Released first resource, need to restart access process.")
 			} else {
 				continue
@@ -332,9 +340,17 @@ func waitForAccessFromManagerB(handleDeny bool) (*protobuf.FilemanagerResponse, 
 		if err := sendFilemanagerRequest(managerBObject, GET); err != nil {
 			return nil, err
 		}
-		receivedMessageFromManagerB, err := receiveAndParseFilemanagerResponse()
-		if err != nil {
-			return nil, err
+		var receivedMessageFromManagerB *protobuf.FilemanagerResponse
+		var err error
+		if handleDeny {
+			if receivedMessageFromManagerB = receiveAccessControlOrFilemanagerResponse(); receivedMessageFromManagerB == nil {
+				continue
+			}
+		} else {
+			receivedMessageFromManagerB, err = receiveAndParseFilemanagerResponse()
+			if err != nil {
+				return nil, err
+			}
 		}
 		switch receivedMessageFromManagerB.GetRequestReaction() {
 		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
@@ -361,7 +377,7 @@ func waitForAccessFromManagerB(handleDeny bool) (*protobuf.FilemanagerResponse, 
 			//A other process uses the resource (maybe deadlock)
 		}
 		if handleDeny {
-			if resourceReleased := tryRecoveringPossibleDeadlock(receivedMessageFromManagerB.GetProcessThatUsesResource(), MANAGER_B); resourceReleased {
+			if resourceReleased := tryRecoveringPossibleDeadlock(receivedMessageFromManagerB.GetProcessThatUsesResource(), MANAGER_A); resourceReleased {
 				return nil, errors.New("Released first resource, need to restart access process.")
 			} else {
 				continue
@@ -374,16 +390,24 @@ func waitForAccessFromManagerB(handleDeny bool) (*protobuf.FilemanagerResponse, 
 	return nil, errors.New("This error should never happen")
 }
 
-func releaseResourceFromManagerA() error {
+func releaseResourceFromManager(managerToRecover int) error {
+	var receivedMessageFromManager *protobuf.FilemanagerResponse
 	for {
-		if err := sendFilemanagerRequest(managerAObject, RELEASE); err != nil {
-			return err
+		if managerToRecover == MANAGER_A {
+			if err := sendFilemanagerRequest(managerAObject, RELEASE); err != nil {
+				return err
+			}
+		} else if managerToRecover == MANAGER_B {
+			if err := sendFilemanagerRequest(managerBObject, RELEASE); err != nil {
+				return err
+			}
+		} else {
+			log.Fatalln("Wrong manager identifier given on releaseResource")
 		}
-		receivedMessageFromManagerA, err := receiveAndParseFilemanagerResponse()
-		if err != nil {
-			return err
+		if receivedMessageFromManager = receiveAccessControlOrFilemanagerResponse(); receivedMessageFromManager == nil {
+			continue
 		}
-		switch receivedMessageFromManagerA.GetRequestReaction() {
+		switch receivedMessageFromManager.GetRequestReaction() {
 		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
 			utils.PrintMessage("Resource from manager A successfully released.")
 			return nil
@@ -400,100 +424,53 @@ func releaseResourceFromManagerA() error {
 	return errors.New("This error should never happen")
 }
 
-func releaseResourceFromManagerB() error {
-	for {
-		if err := sendFilemanagerRequest(managerBObject, RELEASE); err != nil {
-			return err
-		}
-		receivedMessageFromManagerB, err := receiveAndParseFilemanagerResponse()
-		if err != nil {
-			return err
-		}
-		switch receivedMessageFromManagerB.GetRequestReaction() {
-		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-			utils.PrintMessage("Resource from manager B successfully released.")
-			return nil
-		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-			fallthrough
-		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-			fallthrough
-		case protobuf.FilemanagerResponse_ACCESS_DENIED:
-			fallthrough
-		default:
-			log.Fatalln("Received wrong answer from the server.")
-		}
-	}
-	return errors.New("This error should never happen")
-}
-
-func tryRecoveringPossibleDeadlock(processThatUsesResource string, whichManager int) bool {
+func tryRecoveringPossibleDeadlock(processThatUsesResource string, managerToRecover int) bool {
 	utils.PrintMessage(fmt.Sprintf("This process got already one resource the other is blocked by %s.", processThatUsesResource))
 	blockingProcess, err := parseIpColonPortToNetworkServer(processThatUsesResource)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if err := sendAccessControlMessage(blockingProcess); err != nil {
+	if err := sendAccessControlMessage(blockingProcess, true); err != nil {
 		log.Fatalln(err)
 	}
-	receivedAccessControlMessage, err := receiveAccessControlMessage()
+	conn, err := server.ReceiveMessage()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	//The highest process id will release the resource
-	if receivedAccessControlMessage.GetSourceID() < int32(processId) {
-		if whichManager == MANAGER_A {
-			if err := sendFilemanagerRequest(managerAObject, RENOUNCE); err != nil {
-				log.Fatalln(err)
-			}
-		} else if whichManager == MANAGER_B {
-			if err := sendFilemanagerRequest(managerBObject, RENOUNCE); err != nil {
-				log.Fatalln(err)
-			}
-		} else {
-			log.Fatalln("Wrong manager for deadlock recovery given.")
-		}
-		receivedResponse, err := receiveAndParseFilemanagerResponse()
+	utils.PrintMessage("Incoming message")
+	defer conn.Close()
+	data := make([]byte, 4096)
+	n, err := conn.Read(data)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	protoAccessMessage := new(protobuf.AccessControl)
+	err = proto.Unmarshal(data[0:n], protoAccessMessage)
+	if err != nil {
+		protoFilemanagerResponseMessage := new(protobuf.FilemanagerResponse)
+		err = proto.Unmarshal(data[0:n], protoAccessMessage)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		if receivedResponse.GetRequestReaction() == protobuf.FilemanagerResponse_RESOURCE_RELEASED {
-			return true
+		utils.PrintMessage(fmt.Sprintf("FilemanagerResponse decoded.\n\n%s\n\n", protoFilemanagerResponseMessage))
+		if protoFilemanagerResponseMessage.GetRequestReaction() != protobuf.FilemanagerResponse_RESOURCE_RELEASED {
+			return false
 		} else {
-			log.Fatalln("Received not a RESOURCE_RELEASED message for recovering deadlock.")
+			return true
 		}
+	}
+	utils.PrintMessage(fmt.Sprintf("AccessControl decoded.\n\n%s\n\n", protoAccessMessage))
+	//The highest process id will release the resource
+	if protoAccessMessage.GetSourceID() < int32(processId) {
+		if err := releaseResourceFromManager(managerToRecover); err != nil {
+			log.Fatalln(err)
+		}
+		return true
 	}
 	return false
 }
 
-func receiveAccessControlMessage() (*protobuf.AccessControl, error) {
-	//ReceiveMessage blocks until a message comes in
-	conn, err := server.ReceiveMessage()
-	if err != nil {
-		return nil, err
-	}
-	utils.PrintMessage("Incoming AccessControl message")
-	//Close the connection when the function exits
-	defer conn.Close()
-	//Create a data buffer of type byte slice with capacity of 4096
-	data := make([]byte, 4096)
-	//Read the data waiting on the connection and put it in the data buffer
-	n, err := conn.Read(data)
-	if err != nil {
-		return nil, err
-	}
-	utils.PrintMessage("Decoding AccessControl message")
-	//Create an struct pointer of type ProtobufTest.TestMessage struct
-	protodata := new(protobuf.AccessControl)
-	//Convert all the data retrieved into the ProtobufTest.TestMessage struct type
-	err = proto.Unmarshal(data[0:n], protodata)
-	if err != nil {
-		return nil, err
-	}
-	utils.PrintMessage("Message decoded.")
-	return protodata, nil
-}
-
-func sendAccessControlMessage(destinationFileManager server.NetworkServer) error {
+func sendAccessControlMessage(destinationFileManager server.NetworkServer, isDeadlock bool) error {
 	if destinationFileManager.IpAndPortAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server information has no ip address or port.\n%s\n", utils.ERROR_FOOTER))
 	}
@@ -502,6 +479,7 @@ func sendAccessControlMessage(destinationFileManager server.NetworkServer) error
 	protobufMessage.SourceIP = proto.String(serverObject.IpAddressAsString())
 	protobufMessage.SourcePort = proto.Int(serverObject.Port())
 	protobufMessage.SourceID = proto.Int(processId)
+	protobufMessage.GotDeadlock = proto.Bool(isDeadlock)
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {
@@ -519,4 +497,36 @@ func sendAccessControlMessage(destinationFileManager server.NetworkServer) error
 	utils.PrintMessage(fmt.Sprintf("AccessControl message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
+}
+
+func receiveAccessControlOrFilemanagerResponse() *protobuf.FilemanagerResponse {
+	conn, err := server.ReceiveMessage()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	utils.PrintMessage("Incoming message")
+	defer conn.Close()
+	data := make([]byte, 4096)
+	n, err := conn.Read(data)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	protoFilemanagerResponseMessage := new(protobuf.FilemanagerResponse)
+	err = proto.Unmarshal(data[0:n], protoFilemanagerResponseMessage)
+	if err != nil {
+		protoAccessMessage := new(protobuf.AccessControl)
+		err = proto.Unmarshal(data[0:n], protoAccessMessage)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		utils.PrintMessage(fmt.Sprintf("AccessControl decoded.\n\n%s\n\n", protoAccessMessage))
+		targetServerObject, err := parseIpColonPortToNetworkServer(fmt.Sprintf("%s:%d", protoAccessMessage.GetSourceIP(), protoAccessMessage.GetSourcePort()))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		sendAccessControlMessage(targetServerObject, false)
+		return nil
+	}
+	utils.PrintMessage(fmt.Sprintf("FilemanagerResponse decoded.\n\n%s\n\n", protoFilemanagerResponseMessage))
+	return protoFilemanagerResponseMessage
 }

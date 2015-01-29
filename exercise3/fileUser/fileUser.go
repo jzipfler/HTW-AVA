@@ -233,11 +233,11 @@ func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reactio
 func workerFunctionForEvenProcesses() {
 	//Get write access on A then on B
 	//Increase A and decrease B
-	receivedMessageFromManagerA, err := waitForAccessFromManagerA()
+	receivedMessageFromManagerA, err := waitForAccessFromManagerA(false)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	receivedMessageFromManagerB, err := waitForAccessFromManagerB()
+	receivedMessageFromManagerB, err := waitForAccessFromManagerB(true)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -252,11 +252,11 @@ func workerFunctionForEvenProcesses() {
 func workerFunctionForUnevenProcesses() {
 	//Get write access on B then on A
 	//Increase B and decrease A
-	receivedMessageFromManagerB, err := waitForAccessFromManagerB()
+	receivedMessageFromManagerB, err := waitForAccessFromManagerB(false)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	receivedMessageFromManagerA, err := waitForAccessFromManagerA()
+	receivedMessageFromManagerA, err := waitForAccessFromManagerA(true)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -268,7 +268,7 @@ func workerFunctionForUnevenProcesses() {
 	releaseResourceFromManagerA()
 }
 
-func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
+func waitForAccessFromManagerA(handleDeny bool) (*protobuf.FilemanagerResponse, error) {
 	for {
 		if err := sendFilemanagerRequest(managerAObject, GET); err != nil {
 			return nil, err
@@ -289,6 +289,23 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 			fallthrough
 		default:
 			utils.PrintMessage("Access denied from manager A")
+		}
+		switch receivedMessageFromManagerA.GetProcessThatUsesResource() {
+		case "":
+			//Value was not set (try again?!)
+			time.Sleep(3 * time.Second)
+			continue
+		case serverObject.IpAndPortAsString():
+			//We already have access
+			return receivedMessageFromManagerA, nil
+		default:
+			//An other process uses the resource (maybe deadlock)
+		}
+		if handleDeny {
+			tryRecoveringPossibleDeadlock(receivedMessageFromManagerA.GetProcessThatUsesResource())
+			//TODO
+			time.Sleep(3 * time.Second)
+		} else {
 			time.Sleep(3 * time.Second)
 			continue
 		}
@@ -296,7 +313,7 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 	return nil, errors.New("This error should never happen")
 }
 
-func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
+func waitForAccessFromManagerB(handleDeny bool) (*protobuf.FilemanagerResponse, error) {
 	for {
 		if err := sendFilemanagerRequest(managerBObject, GET); err != nil {
 			return nil, err
@@ -317,6 +334,24 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 			fallthrough
 		default:
 			utils.PrintMessage("Access denied from manager B")
+		}
+		switch receivedMessageFromManagerB.GetProcessThatUsesResource() {
+		case "":
+			//Value was not set (try again?!)
+			time.Sleep(3 * time.Second)
+			continue
+		case serverObject.IpAndPortAsString():
+			//We already have access
+			return receivedMessageFromManagerB, nil
+		default:
+			//A other process uses the resource (maybe deadlock)
+		}
+		if handleDeny {
+			tryRecoveringPossibleDeadlock(receivedMessageFromManagerB.GetProcessThatUsesResource())
+			//TODO
+			time.Sleep(3 * time.Second)
+			continue
+		} else {
 			time.Sleep(3 * time.Second)
 			continue
 		}
@@ -374,4 +409,9 @@ func releaseResourceFromManagerB() error {
 		}
 	}
 	return errors.New("This error should never happen")
+}
+
+func tryRecoveringPossibleDeadlock(processThatUsesResource string) {
+	//TODO
+	utils.PrintMessage(fmt.Sprintf("This process got already one resource the other is blocked by %s.", processThatUsesResource))
 }

@@ -41,6 +41,11 @@ const (
 	RENOUNCE        // 2
 )
 
+const (
+	MANAGER_A = iota
+	MANAGER_B
+)
+
 func init() {
 	flag.StringVar(&logFile, "logFile", "path/to/logfile.txt", "This parameter can be used to print the logging output to the given file.")
 	flag.StringVar(&ipAddress, "ipAddress", "127.0.0.1", "The ip address of the actual starting node.")
@@ -102,13 +107,13 @@ func main() {
 	utils.InitializeLogger(logFile, fmt.Sprintf("%d > ", processId))
 
 	var err error
-	managerAObject, err = parseManagerInformation(managerA)
+	managerAObject, err = parseIpColonPortToNetworkServer(managerA)
 	if err != nil {
 		log.Fatalf("%s\n%s\n\n", err.Error(), utils.ERROR_FOOTER)
 	}
 	managerAObject.SetClientName("ManagerA")
 	utils.PrintMessage(fmt.Sprint("ManagerA: ", managerA))
-	managerBObject, err = parseManagerInformation(managerB)
+	managerBObject, err = parseIpColonPortToNetworkServer(managerB)
 	if err != nil {
 		log.Fatalf("%s\n%s\n\n", err.Error(), utils.ERROR_FOOTER)
 	}
@@ -142,14 +147,14 @@ func main() {
 	}
 }
 
-func parseManagerInformation(managerInformation string) (server.NetworkServer, error) {
+func parseIpColonPortToNetworkServer(managerInformation string) (server.NetworkServer, error) {
 	serverObject := server.New()
 	managerInformation = strings.Trim(managerInformation, " \t")
 	if managerInformation == "" {
-		return serverObject, errors.New("The information about the manager was empty.")
+		return serverObject, errors.New("The information about the entiry was empty.")
 	}
 	if !strings.Contains(managerInformation, ":") {
-		return serverObject, errors.New("The managerInformation must use the format \"IPADDRESS:PORT\", but no \":\" was found.")
+		return serverObject, errors.New("The information must use the format \"IPADDRESS:PORT\", but no \":\" was found.")
 	}
 	ipAndPortArray := strings.Split(managerInformation, ":")
 	port, err := strconv.Atoi(ipAndPortArray[1])
@@ -168,7 +173,7 @@ func receiveAndParseFilemanagerResponse() (*protobuf.FilemanagerResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	utils.PrintMessage("Incoming message")
+	utils.PrintMessage("Incoming FilemanagerResponse")
 	//Close the connection when the function exits
 	defer conn.Close()
 	//Create a data buffer of type byte slice with capacity of 4096
@@ -178,7 +183,7 @@ func receiveAndParseFilemanagerResponse() (*protobuf.FilemanagerResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	utils.PrintMessage("Decoding Protobuf message")
+	utils.PrintMessage("Decoding Protobuf FilemanagerResponse")
 	//Create an struct pointer of type ProtobufTest.TestMessage struct
 	protodata := new(protobuf.FilemanagerResponse)
 	//Convert all the data retrieved into the ProtobufTest.TestMessage struct type
@@ -186,7 +191,7 @@ func receiveAndParseFilemanagerResponse() (*protobuf.FilemanagerResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	utils.PrintMessage("Message decoded.")
+	utils.PrintMessage("FilemanagerResponse decoded.")
 	return protodata, nil
 }
 
@@ -194,7 +199,7 @@ func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reactio
 	if destinationFileManager.IpAndPortAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server information has no ip address or port.\n%s\n", utils.ERROR_FOOTER))
 	}
-	utils.PrintMessage(fmt.Sprintf("Encode protobuf application message for node with IP:PORT : %s.", destinationFileManager.IpAndPortAsString()))
+	utils.PrintMessage(fmt.Sprintf("Encode protobuf FilemanagerRequest message for node with IP:PORT : %s.", destinationFileManager.IpAndPortAsString()))
 	protobufMessage := new(protobuf.FilemanagerRequest)
 	protobufMessage.SourceIP = proto.String(serverObject.IpAddressAsString())
 	protobufMessage.SourcePort = proto.Int(serverObject.Port())
@@ -225,7 +230,7 @@ func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reactio
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("Application message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
+	utils.PrintMessage(fmt.Sprintf("FilemanagerRequest message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
 }
@@ -239,7 +244,11 @@ func workerFunctionForEvenProcesses() {
 	}
 	receivedMessageFromManagerB, err := waitForAccessFromManagerB(true)
 	if err != nil {
-		log.Fatalln(err)
+		if err.Error() == "Released first resource, need to restart access process." {
+			return
+		} else {
+			log.Fatalln(err)
+		}
 	}
 	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
@@ -258,7 +267,11 @@ func workerFunctionForUnevenProcesses() {
 	}
 	receivedMessageFromManagerA, err := waitForAccessFromManagerA(true)
 	if err != nil {
-		log.Fatalln(err)
+		if err.Error() == "Released first resource, need to restart access process." {
+			return
+		} else {
+			log.Fatalln(err)
+		}
 	}
 	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
@@ -302,9 +315,11 @@ func waitForAccessFromManagerA(handleDeny bool) (*protobuf.FilemanagerResponse, 
 			//An other process uses the resource (maybe deadlock)
 		}
 		if handleDeny {
-			tryRecoveringPossibleDeadlock(receivedMessageFromManagerA.GetProcessThatUsesResource())
-			//TODO
-			time.Sleep(3 * time.Second)
+			if resourceReleased := tryRecoveringPossibleDeadlock(receivedMessageFromManagerA.GetProcessThatUsesResource(), MANAGER_A); resourceReleased {
+				return nil, errors.New("Released first resource, need to restart access process.")
+			} else {
+				continue
+			}
 		} else {
 			time.Sleep(3 * time.Second)
 			continue
@@ -347,10 +362,11 @@ func waitForAccessFromManagerB(handleDeny bool) (*protobuf.FilemanagerResponse, 
 			//A other process uses the resource (maybe deadlock)
 		}
 		if handleDeny {
-			tryRecoveringPossibleDeadlock(receivedMessageFromManagerB.GetProcessThatUsesResource())
-			//TODO
-			time.Sleep(3 * time.Second)
-			continue
+			if resourceReleased := tryRecoveringPossibleDeadlock(receivedMessageFromManagerB.GetProcessThatUsesResource(), MANAGER_B); resourceReleased {
+				return nil, errors.New("Released first resource, need to restart access process.")
+			} else {
+				continue
+			}
 		} else {
 			time.Sleep(3 * time.Second)
 			continue
@@ -411,7 +427,97 @@ func releaseResourceFromManagerB() error {
 	return errors.New("This error should never happen")
 }
 
-func tryRecoveringPossibleDeadlock(processThatUsesResource string) {
-	//TODO
+func tryRecoveringPossibleDeadlock(processThatUsesResource string, whichManager int) bool {
 	utils.PrintMessage(fmt.Sprintf("This process got already one resource the other is blocked by %s.", processThatUsesResource))
+	blockingProcess, err := parseIpColonPortToNetworkServer(processThatUsesResource)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if err := sendAccessControlMessage(blockingProcess); err != nil {
+		log.Fatalln(err)
+	}
+	receivedAccessControlMessage, err := receiveAccessControlMessage()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//The highest process id will release the resource
+	if receivedAccessControlMessage.GetSourceID() < int32(processId) {
+		if whichManager == MANAGER_A {
+			if err := sendFilemanagerRequest(managerAObject, RENOUNCE); err != nil {
+				log.Fatalln(err)
+			}
+		} else if whichManager == MANAGER_B {
+			if err := sendFilemanagerRequest(managerBObject, RENOUNCE); err != nil {
+				log.Fatalln(err)
+			}
+		} else {
+			log.Fatalln("Wrong manager for deadlock recovery given.")
+		}
+		receivedResponse, err := receiveAndParseFilemanagerResponse()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if receivedResponse.GetRequestReaction() == protobuf.FilemanagerResponse_RESOURCE_RELEASED {
+			return true
+		} else {
+			log.Fatalln("Received not a RESOURCE_RELEASED message for recovering deadlock.")
+		}
+	}
+	return false
+}
+
+func receiveAccessControlMessage() (*protobuf.AccessControl, error) {
+	//ReceiveMessage blocks until a message comes in
+	conn, err := server.ReceiveMessage()
+	if err != nil {
+		return nil, err
+	}
+	utils.PrintMessage("Incoming AccessControl message")
+	//Close the connection when the function exits
+	defer conn.Close()
+	//Create a data buffer of type byte slice with capacity of 4096
+	data := make([]byte, 4096)
+	//Read the data waiting on the connection and put it in the data buffer
+	n, err := conn.Read(data)
+	if err != nil {
+		return nil, err
+	}
+	utils.PrintMessage("Decoding AccessControl message")
+	//Create an struct pointer of type ProtobufTest.TestMessage struct
+	protodata := new(protobuf.AccessControl)
+	//Convert all the data retrieved into the ProtobufTest.TestMessage struct type
+	err = proto.Unmarshal(data[0:n], protodata)
+	if err != nil {
+		return nil, err
+	}
+	utils.PrintMessage("Message decoded.")
+	return protodata, nil
+}
+
+func sendAccessControlMessage(destinationFileManager server.NetworkServer) error {
+	if destinationFileManager.IpAndPortAsString() == "" {
+		return errors.New(fmt.Sprintf("The target server information has no ip address or port.\n%s\n", utils.ERROR_FOOTER))
+	}
+	utils.PrintMessage(fmt.Sprintf("Encode protobuf AccessControl message for node with IP:PORT : %s.", destinationFileManager.IpAndPortAsString()))
+	protobufMessage := new(protobuf.AccessControl)
+	protobufMessage.SourceIP = proto.String(serverObject.IpAddressAsString())
+	protobufMessage.SourcePort = proto.Int(serverObject.Port())
+	protobufMessage.SourceID = proto.Int(processId)
+	//Protobuf message filled with data. Now marshal it.
+	data, err := proto.Marshal(protobufMessage)
+	if err != nil {
+		return err
+	}
+	conn, err := net.Dial("tcp", destinationFileManager.IpAndPortAsString())
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	n, err := conn.Write(data)
+	if err != nil {
+		return err
+	}
+	utils.PrintMessage(fmt.Sprintf("AccessControl message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
+	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
+	return nil
 }

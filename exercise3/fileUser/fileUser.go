@@ -24,6 +24,7 @@ var (
 	logFile     string
 	ipAddress   string
 	port        int
+	id          int
 	managedFile *os.File
 	force       bool
 	managerA    string
@@ -46,11 +47,12 @@ func init() {
 	flag.IntVar(&port, "port", 15100, "The port of the actual starting node.")
 	flag.StringVar(&managerA, "managerA", "127.0.0.1:15100", "The ip address and port of manager A.")
 	flag.StringVar(&managerB, "managerB", "127.0.0.1:15100", "The ip address and port of manager B.")
+	flag.IntVar(&id, "id", 1337, "With this option, a optional id can be specified. If not, the id becomes the process id of this program.")
 }
 
 func main() {
 
-	var containsAddress, containsPort, containsManagerA, containsManagerB bool
+	var containsAddress, containsPort, containsManagerA, containsManagerB, containsId bool
 	for _, argument := range os.Args {
 		if strings.Contains(argument, "-ipAddress") {
 			containsAddress = true
@@ -63,6 +65,9 @@ func main() {
 		}
 		if strings.Contains(argument, "-managerB") {
 			containsManagerB = true
+		}
+		if strings.Contains(argument, "-id") {
+			containsId = true
 		}
 	}
 	if !containsAddress {
@@ -80,14 +85,21 @@ func main() {
 		flag.Usage()
 		os.Exit(0)
 	}
-
 	flag.Parse()
+
+	//Store the processId to decide later if it is an "even" or "uneven" process, or use the given id.
+	if containsId && id > 0 {
+		processId = id
+	} else {
+		processId = os.Getpid()
+		log.Printf("Process id \"%d\" will be used.", processId)
+	}
 
 	if logFile == "path/to/logfile.txt" {
 		logFile = ""
 	}
 
-	utils.InitializeLogger(logFile, "")
+	utils.InitializeLogger(logFile, fmt.Sprintf("%d > ", processId))
 
 	var err error
 	managerAObject, err = parseManagerInformation(managerA)
@@ -102,8 +114,6 @@ func main() {
 	}
 	managerBObject.SetClientName("ManagerB")
 	utils.PrintMessage(fmt.Sprint("ManagerB: ", managerB))
-
-	processId = os.Getpid()
 
 	serverObject = server.New()
 

@@ -13,11 +13,11 @@ It has these top-level messages:
 	MessageTwo
 	FilemanagerRequest
 	FilemanagerResponse
-	AccessControl
+	GoldmanToken
 */
 package protobuf
 
-import proto "code.google.com/p/goprotobuf/proto"
+import proto "github.com/golang/protobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -456,12 +456,13 @@ func (m *FilemanagerRequest) GetAccessOperation() FilemanagerRequest_AccessOpera
 }
 
 type FilemanagerResponse struct {
-	SourceIP                *string                              `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
-	SourcePort              *int32                               `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
-	RequestReaction         *FilemanagerResponse_RequestReaction `protobuf:"varint,3,req,name=requestReaction,enum=protobuf.FilemanagerResponse_RequestReaction" json:"requestReaction,omitempty"`
-	Filename                *string                              `protobuf:"bytes,4,opt,name=filename" json:"filename,omitempty"`
-	ProcessThatUsesResource *string                              `protobuf:"bytes,5,opt,name=processThatUsesResource" json:"processThatUsesResource,omitempty"`
-	XXX_unrecognized        []byte                               `json:"-"`
+	SourceIP                         *string                              `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort                       *int32                               `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	RequestReaction                  *FilemanagerResponse_RequestReaction `protobuf:"varint,3,req,name=requestReaction,enum=protobuf.FilemanagerResponse_RequestReaction" json:"requestReaction,omitempty"`
+	Filename                         *string                              `protobuf:"bytes,4,opt,name=filename" json:"filename,omitempty"`
+	ProcessIpAndPortThatUsesResource *string                              `protobuf:"bytes,5,opt,name=processIpAndPortThatUsesResource" json:"processIpAndPortThatUsesResource,omitempty"`
+	ProcessIdThatUsesResource        *int32                               `protobuf:"varint,6,opt,name=processIdThatUsesResource" json:"processIdThatUsesResource,omitempty"`
+	XXX_unrecognized                 []byte                               `json:"-"`
 }
 
 func (m *FilemanagerResponse) Reset()         { *m = FilemanagerResponse{} }
@@ -496,51 +497,50 @@ func (m *FilemanagerResponse) GetFilename() string {
 	return ""
 }
 
-func (m *FilemanagerResponse) GetProcessThatUsesResource() string {
-	if m != nil && m.ProcessThatUsesResource != nil {
-		return *m.ProcessThatUsesResource
+func (m *FilemanagerResponse) GetProcessIpAndPortThatUsesResource() string {
+	if m != nil && m.ProcessIpAndPortThatUsesResource != nil {
+		return *m.ProcessIpAndPortThatUsesResource
 	}
 	return ""
 }
 
-type AccessControl struct {
-	SourceIP         *string `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
-	SourcePort       *int32  `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
-	SourceID         *int32  `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
-	GotDeadlock      *bool   `protobuf:"varint,4,req,name=gotDeadlock" json:"gotDeadlock,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+func (m *FilemanagerResponse) GetProcessIdThatUsesResource() int32 {
+	if m != nil && m.ProcessIdThatUsesResource != nil {
+		return *m.ProcessIdThatUsesResource
+	}
+	return 0
 }
 
-func (m *AccessControl) Reset()         { *m = AccessControl{} }
-func (m *AccessControl) String() string { return proto.CompactTextString(m) }
-func (*AccessControl) ProtoMessage()    {}
+type GoldmanToken struct {
+	BlockingProcesses []int32 `protobuf:"varint,1,rep,name=blockingProcesses" json:"blockingProcesses,omitempty"`
+	SourceIP          *string `protobuf:"bytes,2,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort        *int32  `protobuf:"varint,3,req,name=sourcePort" json:"sourcePort,omitempty"`
+	XXX_unrecognized  []byte  `json:"-"`
+}
 
-func (m *AccessControl) GetSourceIP() string {
+func (m *GoldmanToken) Reset()         { *m = GoldmanToken{} }
+func (m *GoldmanToken) String() string { return proto.CompactTextString(m) }
+func (*GoldmanToken) ProtoMessage()    {}
+
+func (m *GoldmanToken) GetBlockingProcesses() []int32 {
+	if m != nil {
+		return m.BlockingProcesses
+	}
+	return nil
+}
+
+func (m *GoldmanToken) GetSourceIP() string {
 	if m != nil && m.SourceIP != nil {
 		return *m.SourceIP
 	}
 	return ""
 }
 
-func (m *AccessControl) GetSourcePort() int32 {
+func (m *GoldmanToken) GetSourcePort() int32 {
 	if m != nil && m.SourcePort != nil {
 		return *m.SourcePort
 	}
 	return 0
-}
-
-func (m *AccessControl) GetSourceID() int32 {
-	if m != nil && m.SourceID != nil {
-		return *m.SourceID
-	}
-	return 0
-}
-
-func (m *AccessControl) GetGotDeadlock() bool {
-	if m != nil && m.GotDeadlock != nil {
-		return *m.GotDeadlock
-	}
-	return false
 }
 
 func init() {

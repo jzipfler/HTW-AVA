@@ -87,12 +87,12 @@ message FilemanagerResponse {
 	required int32 sourcePort = 2;
   	required RequestReaction requestReaction = 3;
     optional string filename = 4;
-	optional string processThatUsesResource = 5; //Uses the format "IPADDRESS:PORT"
+	optional string processIpAndPortThatUsesResource = 5; //Uses the format "IPADDRESS:PORT"
+	optional int32 processIdThatUsesResource = 6;
 }
 
-message AccessControl {
-	required string sourceIP = 1;
-	required int32 sourcePort = 2;
-	required int32 sourceID = 3;
-	required bool gotDeadlock = 4;
+message GoldmanToken {
+	repeated int32 blockingProcesses = 1;
+	required string sourceIP = 2;
+	required int32 sourcePort = 3;
 }

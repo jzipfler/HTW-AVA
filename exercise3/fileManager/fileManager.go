@@ -30,6 +30,9 @@ var (
 	usedByIpAndPort string
 
 	serverObject server.NetworkServer
+
+	releaseServer           server.NetworkServer
+	resourceReleasedChannel chan bool
 )
 
 const (
@@ -44,7 +47,7 @@ func init() {
 	flag.StringVar(&managerName, "name", "Manager A", "Define the name of this manager.")
 	flag.StringVar(&logFile, "logFile", "path/to/logfile.txt", "This parameter can be used to print the logging output to the given file.")
 	flag.StringVar(&ipAddress, "ipAddress", "127.0.0.1", "The ip address of the actual starting node.")
-	flag.IntVar(&port, "port", 15100, "The port of the actual starting node.")
+	flag.IntVar(&port, "port", 15100, "The port of the actual starting node. (Portnumber must be even)")
 	flag.BoolVar(&force, "force", false, "If force is enabled, the programm removes a existing management file and creates a new one without asking.")
 }
 
@@ -79,6 +82,11 @@ func main() {
 	}
 
 	flag.Parse()
+
+	if port%2 != 0 {
+		log.Printf("The port number must be even.\n%s\n\n", utils.ERROR_FOOTER)
+		os.Exit(1)
+	}
 
 	utils.InitializeLogger(logFile, "")
 	utils.PrintMessage(fmt.Sprintf("File \"%s\" is now managed by this process.", filename))
@@ -125,7 +133,19 @@ func main() {
 	}
 	defer server.StopServer()
 
+	resourceReleasedChannel = make(chan bool)
+
+	go handleMessagesOnUnevenPort()
+
 	for {
+		select {
+		case <-resourceReleasedChannel:
+			fileInUse = false
+			usedById = 0
+			usedByIpAndPort = ""
+		default:
+			//NOOP
+		}
 		receivedMessage := receiveAndParseFilemanagerRequest()
 		var reaction int
 		switch receivedMessage.GetAccessOperation() {
@@ -234,8 +254,9 @@ func sendFilemanagerResponse(destinationIp string, destinationPort, reaction int
 		requestReaction = protobuf.FilemanagerResponse_RequestReaction(ACCESS_DENIED)
 	}
 	protobufMessage.RequestReaction = &requestReaction
-	if usedByIpAndPort != "" {
-		protobufMessage.ProcessThatUsesResource = proto.String(usedByIpAndPort)
+	if usedByIpAndPort != "" && usedById != 0 {
+		protobufMessage.ProcessIpAndPortThatUsesResource = proto.String(usedByIpAndPort)
+		protobufMessage.ProcessIdThatUsesResource = proto.Int32(usedById)
 	}
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
@@ -254,4 +275,54 @@ func sendFilemanagerResponse(destinationIp string, destinationPort, reaction int
 	utils.PrintMessage(fmt.Sprintf("Application message from %s to %s sent:\n\n%s\n\n", serverObject.String(), ipAddressAndPort, protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
+}
+
+func handleMessagesOnUnevenPort() {
+	releaseServer = server.New()
+	releaseServer.SetClientName(managerName)
+	releaseServer.SetIpAddressAsString(ipAddress)
+	releaseServer.SetPort(port + 1)
+	releaseServer.SetUsedProtocol("tcp")
+
+	releaseListener, err := net.Listen(releaseServer.UsedProtocol(), releaseServer.IpAndPortAsString())
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer releaseListener.Close()
+
+	for {
+		var reaction int
+		conn, err := releaseListener.Accept()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		utils.PrintMessage("Incoming message")
+		defer conn.Close()
+		data := make([]byte, 4096)
+		n, err := conn.Read(data)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		request := new(protobuf.FilemanagerRequest)
+		err = proto.Unmarshal(data[0:n], request)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		utils.PrintMessage(fmt.Sprintf("Request decoded.\n\n%s\n\n", request))
+		if request.GetAccessOperation() != protobuf.FilemanagerRequest_RENOUNCE || request.GetAccessOperation() != protobuf.FilemanagerRequest_RELEASE {
+			sendFilemanagerResponse(request.GetSourceIP(), int(request.GetSourcePort()-1), RESOURCE_NOT_RELEASED)
+		}
+		//Check if the array of blocking processes contains the id of this process
+		if fileInUse && usedById == request.GetSourceID() {
+			fileInUse = false
+			usedById = 0
+			usedByIpAndPort = ""
+			reaction = RESOURCE_RELEASED
+			utils.PrintMessage("File successfully released/renounced.")
+			resourceReleasedChannel <- true
+		} else {
+			reaction = RESOURCE_NOT_RELEASED
+		}
+		sendFilemanagerResponse(request.GetSourceIP(), int(request.GetSourcePort()-1), reaction)
+	}
 }

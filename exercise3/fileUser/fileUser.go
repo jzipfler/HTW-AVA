@@ -32,6 +32,18 @@ var (
 	serverObject   server.NetworkServer
 	managerAObject server.NetworkServer
 	managerBObject server.NetworkServer
+
+	tokenServer             server.NetworkServer
+	nonBlockingManager      server.NetworkServer
+	waitForIpAndPort        string
+	waitForId               int
+	blocking                bool
+	gotOneResource          bool
+	resourceReleasedChannel chan bool
+)
+
+const (
+	SECONDS_UNTIL_NEXT_TRY = 3
 )
 
 const (
@@ -48,9 +60,9 @@ const (
 func init() {
 	flag.StringVar(&logFile, "logFile", "path/to/logfile.txt", "This parameter can be used to print the logging output to the given file.")
 	flag.StringVar(&ipAddress, "ipAddress", "127.0.0.1", "The ip address of the actual starting node.")
-	flag.IntVar(&port, "port", 15100, "The port of the actual starting node.")
-	flag.StringVar(&managerA, "managerA", "127.0.0.1:15100", "The ip address and port of manager A.")
-	flag.StringVar(&managerB, "managerB", "127.0.0.1:15100", "The ip address and port of manager B.")
+	flag.IntVar(&port, "port", 15100, "The port of the actual starting node. (Portnumber must be even)")
+	flag.StringVar(&managerA, "managerA", "127.0.0.1:15100", "The ip address and port of manager A. (Portnumber must be even)")
+	flag.StringVar(&managerB, "managerB", "127.0.0.1:15100", "The ip address and port of manager B. (Portnumber must be even)")
 	flag.IntVar(&id, "id", 1337, "With this option, a optional id can be specified. If not, the id becomes the process id of this program.")
 }
 
@@ -91,6 +103,11 @@ func main() {
 	}
 	flag.Parse()
 
+	if port%2 != 0 {
+		log.Printf("The port number must be even.\n%s\n\n", utils.ERROR_FOOTER)
+		os.Exit(1)
+	}
+
 	//Store the processId to decide later if it is an "even" or "uneven" process, or use the given id.
 	if containsId && id > 0 {
 		processId = id
@@ -120,7 +137,6 @@ func main() {
 	utils.PrintMessage(fmt.Sprint("ManagerB: ", managerB))
 
 	serverObject = server.New()
-
 	serverObject.SetClientName(string(processId))
 	serverObject.SetIpAddressAsString(ipAddress)
 	serverObject.SetPort(port)
@@ -140,6 +156,8 @@ func main() {
 	} else {
 		work = workerFunctionForUnevenProcesses
 	}
+
+	go handleTokenMessages()
 
 	for {
 		work()
@@ -164,34 +182,6 @@ func parseIpColonPortToNetworkServer(managerInformation string) (server.NetworkS
 	serverObject.SetPort(port)
 	serverObject.SetUsedProtocol("tcp")
 	return serverObject, nil
-}
-
-func receiveAndParseFilemanagerResponse() (*protobuf.FilemanagerResponse, error) {
-	//ReceiveMessage blocks until a message comes in
-	conn, err := server.ReceiveMessage()
-	if err != nil {
-		return nil, err
-	}
-	utils.PrintMessage("Incoming FilemanagerResponse")
-	//Close the connection when the function exits
-	defer conn.Close()
-	//Create a data buffer of type byte slice with capacity of 4096
-	data := make([]byte, 4096)
-	//Read the data waiting on the connection and put it in the data buffer
-	n, err := conn.Read(data)
-	if err != nil {
-		return nil, err
-	}
-	utils.PrintMessage("Decoding Protobuf FilemanagerResponse")
-	//Create an struct pointer of type ProtobufTest.TestMessage struct
-	protodata := new(protobuf.FilemanagerResponse)
-	//Convert all the data retrieved into the ProtobufTest.TestMessage struct type
-	err = proto.Unmarshal(data[0:n], protodata)
-	if err != nil {
-		return nil, err
-	}
-	utils.PrintMessage(fmt.Sprintf("FilemanagerResponse decoded.\n\n%s\n\n", protodata))
-	return protodata, nil
 }
 
 func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reaction int) error {
@@ -234,21 +224,44 @@ func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reactio
 	return nil
 }
 
-func workerFunctionForEvenProcesses() {
-	//Get write access on A then on B
-	//Increase A and decrease B
-	receivedMessageFromManagerA, err := waitForAccessFromManagerA(false)
+func receiveFilemanagerResponses() *protobuf.FilemanagerResponse {
+	conn, err := server.ReceiveMessage()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	receivedMessageFromManagerB, err := waitForAccessFromManagerB(true)
+	utils.PrintMessage("Incoming message")
+	defer conn.Close()
+	data := make([]byte, 4096)
+	n, err := conn.Read(data)
 	if err != nil {
-		if err.Error() == "Released first resource, need to restart access process." {
-			return
-		} else {
-			log.Fatalln(err)
-		}
+		log.Fatalln(err)
 	}
+	protoFilemanagerResponseMessage := new(protobuf.FilemanagerResponse)
+	err = proto.Unmarshal(data[0:n], protoFilemanagerResponseMessage)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	utils.PrintMessage(fmt.Sprintf("FilemanagerResponse decoded.\n\n%s\n\n", protoFilemanagerResponseMessage))
+	return protoFilemanagerResponseMessage
+}
+
+func workerFunctionForEvenProcesses() {
+	//Get write access on A then on B
+	//Increase A and decrease B
+	receivedMessageFromManagerA, err := waitForAccessFromManagerA()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if err == nil && receivedMessageFromManagerA == nil {
+		return
+	}
+	gotOneResource = true
+	receivedMessageFromManagerB, err := waitForAccessFromManagerB()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	blocking = false
+	gotOneResource = false
 	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
 	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
@@ -260,18 +273,20 @@ func workerFunctionForEvenProcesses() {
 func workerFunctionForUnevenProcesses() {
 	//Get write access on B then on A
 	//Increase B and decrease A
-	receivedMessageFromManagerB, err := waitForAccessFromManagerB(false)
+	receivedMessageFromManagerB, err := waitForAccessFromManagerB()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	receivedMessageFromManagerA, err := waitForAccessFromManagerA(true)
-	if err != nil {
-		if err.Error() == "Released first resource, need to restart access process." {
-			return
-		} else {
-			log.Fatalln(err)
-		}
+	if err == nil && receivedMessageFromManagerB == nil {
+		return
 	}
+	gotOneResource = true
+	receivedMessageFromManagerA, err := waitForAccessFromManagerA()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	blocking = false
+	gotOneResource = false
 	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
 	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
@@ -280,110 +295,85 @@ func workerFunctionForUnevenProcesses() {
 	releaseResourceFromManager(MANAGER_A)
 }
 
-func waitForAccessFromManagerA(handleDeny bool) (*protobuf.FilemanagerResponse, error) {
+func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 	for {
 		if err := sendFilemanagerRequest(managerAObject, GET); err != nil {
 			return nil, err
 		}
 		var receivedMessageFromManagerA *protobuf.FilemanagerResponse
-		var err error
-		if handleDeny {
-			if receivedMessageFromManagerA = receiveAccessControlOrFilemanagerResponse(); receivedMessageFromManagerA == nil {
-				continue
-			}
-		} else {
-			receivedMessageFromManagerA, err = receiveAndParseFilemanagerResponse()
-			if err != nil {
-				return nil, err
-			}
+		if receivedMessageFromManagerA = receiveFilemanagerResponses(); receivedMessageFromManagerA == nil {
+			continue
 		}
 		switch receivedMessageFromManagerA.GetRequestReaction() {
 		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
 			utils.PrintMessage("Access granted from manager A")
+			if gotOneResource {
+				blocking = false
+				nonBlockingManager = server.New()
+			}
 			return receivedMessageFromManagerA, nil
 		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-			fallthrough
+			utils.PrintMessage("Received RESOURCE_RELEASED from manager A. Releasing...")
+			return nil, nil
 		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-			log.Fatalln("Received wrong answer from manager B.")
+			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager A. Continue.")
+			continue
 		case protobuf.FilemanagerResponse_ACCESS_DENIED:
 			fallthrough
 		default:
-			utils.PrintMessage("Access denied from manager A")
-		}
-		switch receivedMessageFromManagerA.GetProcessThatUsesResource() {
-		case "":
-			//Value was not set (try again?!)
-			time.Sleep(3 * time.Second)
-			continue
-		case serverObject.IpAndPortAsString():
-			//We already have access
-			return receivedMessageFromManagerA, nil
-		default:
-			//An other process uses the resource (maybe deadlock)
-		}
-		if handleDeny {
-			if resourceReleased := tryRecoveringPossibleDeadlock(receivedMessageFromManagerA.GetProcessThatUsesResource(), MANAGER_B); resourceReleased {
-				return nil, errors.New("Released first resource, need to restart access process.")
-			} else {
-				continue
+			utils.PrintMessage("Access denied from manager A.")
+			targetServerObject, err := parseIpColonPortToNetworkServer(receivedMessageFromManagerA.GetProcessIpAndPortThatUsesResource())
+			if err != nil {
+				log.Fatalln(err)
 			}
-		} else {
-			time.Sleep(3 * time.Second)
+			utils.PrintMessage("Send token to WAIT-FOR node.")
+			sendGoldmanToken(targetServerObject)
+			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue
 		}
 	}
 	return nil, errors.New("This error should never happen")
 }
 
-func waitForAccessFromManagerB(handleDeny bool) (*protobuf.FilemanagerResponse, error) {
+func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 	for {
 		if err := sendFilemanagerRequest(managerBObject, GET); err != nil {
 			return nil, err
 		}
 		var receivedMessageFromManagerB *protobuf.FilemanagerResponse
-		var err error
-		if handleDeny {
-			if receivedMessageFromManagerB = receiveAccessControlOrFilemanagerResponse(); receivedMessageFromManagerB == nil {
-				continue
-			}
-		} else {
-			receivedMessageFromManagerB, err = receiveAndParseFilemanagerResponse()
-			if err != nil {
-				return nil, err
-			}
+		if receivedMessageFromManagerB = receiveFilemanagerResponses(); receivedMessageFromManagerB == nil {
+			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+			continue
 		}
 		switch receivedMessageFromManagerB.GetRequestReaction() {
 		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
-			utils.PrintMessage("Access granted from manager A")
+			utils.PrintMessage("Access granted from manager B")
+			if gotOneResource {
+				blocking = false
+				nonBlockingManager = server.New()
+			}
 			return receivedMessageFromManagerB, nil
 		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-			fallthrough
+			utils.PrintMessage("Received RESOURCE_RELEASED from manager B. Releasing...")
+			gotOneResource = false
+			blocking = false
+			nonBlockingManager = server.New()
+			return nil, nil
 		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-			log.Fatalln("Received wrong answer from manager A.")
+			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager B. Continue.")
+			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+			continue
 		case protobuf.FilemanagerResponse_ACCESS_DENIED:
 			fallthrough
 		default:
-			utils.PrintMessage("Access denied from manager B")
-		}
-		switch receivedMessageFromManagerB.GetProcessThatUsesResource() {
-		case "":
-			//Value was not set (try again?!)
-			time.Sleep(3 * time.Second)
-			continue
-		case serverObject.IpAndPortAsString():
-			//We already have access
-			return receivedMessageFromManagerB, nil
-		default:
-			//A other process uses the resource (maybe deadlock)
-		}
-		if handleDeny {
-			if resourceReleased := tryRecoveringPossibleDeadlock(receivedMessageFromManagerB.GetProcessThatUsesResource(), MANAGER_A); resourceReleased {
-				return nil, errors.New("Released first resource, need to restart access process.")
-			} else {
-				continue
+			utils.PrintMessage("Access denied from manager B.")
+			targetServerObject, err := parseIpColonPortToNetworkServer(receivedMessageFromManagerB.GetProcessIpAndPortThatUsesResource())
+			if err != nil {
+				log.Fatalln(err)
 			}
-		} else {
-			time.Sleep(3 * time.Second)
+			utils.PrintMessage("Send token to WAIT-FOR node.")
+			sendGoldmanToken(targetServerObject)
+			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue
 		}
 	}
@@ -404,7 +394,7 @@ func releaseResourceFromManager(managerToRecover int) error {
 		} else {
 			log.Fatalln("Wrong manager identifier given on releaseResource")
 		}
-		if receivedMessageFromManager = receiveAccessControlOrFilemanagerResponse(); receivedMessageFromManager == nil {
+		if receivedMessageFromManager = receiveFilemanagerResponses(); receivedMessageFromManager == nil {
 			continue
 		}
 		switch receivedMessageFromManager.GetRequestReaction() {
@@ -418,68 +408,22 @@ func releaseResourceFromManager(managerToRecover int) error {
 		case protobuf.FilemanagerResponse_ACCESS_DENIED:
 			fallthrough
 		default:
-			log.Fatalln("Received wrong answer from the server.")
+			utils.PrintMessage("Received wrong answer from the server.")
+			continue
 		}
 	}
 	return errors.New("This error should never happen")
 }
 
-func tryRecoveringPossibleDeadlock(processThatUsesResource string, managerToRecover int) bool {
-	utils.PrintMessage(fmt.Sprintf("This process got already one resource the other is blocked by %s.", processThatUsesResource))
-	blockingProcess, err := parseIpColonPortToNetworkServer(processThatUsesResource)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if err := sendAccessControlMessage(blockingProcess, true); err != nil {
-		log.Fatalln(err)
-	}
-	conn, err := server.ReceiveMessage()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	utils.PrintMessage("Incoming message")
-	defer conn.Close()
-	data := make([]byte, 4096)
-	n, err := conn.Read(data)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	protoAccessMessage := new(protobuf.AccessControl)
-	err = proto.Unmarshal(data[0:n], protoAccessMessage)
-	if err != nil {
-		protoFilemanagerResponseMessage := new(protobuf.FilemanagerResponse)
-		err = proto.Unmarshal(data[0:n], protoAccessMessage)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		utils.PrintMessage(fmt.Sprintf("FilemanagerResponse decoded.\n\n%s\n\n", protoFilemanagerResponseMessage))
-		if protoFilemanagerResponseMessage.GetRequestReaction() != protobuf.FilemanagerResponse_RESOURCE_RELEASED {
-			return false
-		} else {
-			return true
-		}
-	}
-	utils.PrintMessage(fmt.Sprintf("AccessControl decoded.\n\n%s\n\n", protoAccessMessage))
-	//The highest process id will release the resource
-	if protoAccessMessage.GetSourceID() < int32(processId) {
-		if err := releaseResourceFromManager(managerToRecover); err != nil {
-			log.Fatalln(err)
-		}
-		return true
-	}
-	return false
-}
-
-func sendAccessControlMessage(destinationFileManager server.NetworkServer, isDeadlock bool) error {
+func sendGoldmanToken(destinationFileManager server.NetworkServer) error {
 	if destinationFileManager.IpAndPortAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server information has no ip address or port.\n%s\n", utils.ERROR_FOOTER))
 	}
-	utils.PrintMessage(fmt.Sprintf("Encode protobuf AccessControl message for node with IP:PORT : %s.", destinationFileManager.IpAndPortAsString()))
-	protobufMessage := new(protobuf.AccessControl)
+	utils.PrintMessage(fmt.Sprintf("Encode protobuf Token message for node with IP:PORT : %s.", destinationFileManager.IpAndPortAsString()))
+	protobufMessage := new(protobuf.GoldmanToken)
+	protobufMessage.BlockingProcesses = append(protobufMessage.GetBlockingProcesses(), int32(processId))
 	protobufMessage.SourceIP = proto.String(serverObject.IpAddressAsString())
 	protobufMessage.SourcePort = proto.Int(serverObject.Port())
-	protobufMessage.SourceID = proto.Int(processId)
-	protobufMessage.GotDeadlock = proto.Bool(isDeadlock)
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {
@@ -494,13 +438,13 @@ func sendAccessControlMessage(destinationFileManager server.NetworkServer, isDea
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("AccessControl message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
+	utils.PrintMessage(fmt.Sprintf("Token message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
 }
 
-func receiveAccessControlOrFilemanagerResponse() *protobuf.FilemanagerResponse {
-	conn, err := server.ReceiveMessage()
+func receiveGoldmanToken(tokenListener net.Listener) *protobuf.GoldmanToken {
+	conn, err := tokenListener.Accept()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -511,22 +455,48 @@ func receiveAccessControlOrFilemanagerResponse() *protobuf.FilemanagerResponse {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	protoFilemanagerResponseMessage := new(protobuf.FilemanagerResponse)
-	err = proto.Unmarshal(data[0:n], protoFilemanagerResponseMessage)
+	token := new(protobuf.GoldmanToken)
+	err = proto.Unmarshal(data[0:n], token)
 	if err != nil {
-		protoAccessMessage := new(protobuf.AccessControl)
-		err = proto.Unmarshal(data[0:n], protoAccessMessage)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		utils.PrintMessage(fmt.Sprintf("AccessControl decoded.\n\n%s\n\n", protoAccessMessage))
-		targetServerObject, err := parseIpColonPortToNetworkServer(fmt.Sprintf("%s:%d", protoAccessMessage.GetSourceIP(), protoAccessMessage.GetSourcePort()))
-		if err != nil {
-			log.Fatalln(err)
-		}
-		sendAccessControlMessage(targetServerObject, false)
-		return nil
+		log.Fatalln(err)
 	}
-	utils.PrintMessage(fmt.Sprintf("FilemanagerResponse decoded.\n\n%s\n\n", protoFilemanagerResponseMessage))
-	return protoFilemanagerResponseMessage
+	utils.PrintMessage(fmt.Sprintf("Token decoded.\n\n%s\n\n", token))
+	return token
+}
+
+func handleTokenMessages() {
+	tokenServer = server.New()
+	tokenServer.SetClientName(string(processId))
+	tokenServer.SetIpAddressAsString(ipAddress)
+	tokenServer.SetPort(port + 1)
+	tokenServer.SetUsedProtocol("tcp")
+
+	tokenListener, err := net.Listen(tokenServer.UsedProtocol(), tokenServer.IpAndPortAsString())
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer tokenListener.Close()
+
+	for {
+		token := receiveGoldmanToken(tokenListener)
+		//Check if the array of blocking processes contains the id of this process
+		if blocking {
+			for _, value := range token.GetBlockingProcesses() {
+				if value == int32(processId) {
+					utils.PrintMessage("Deadlock, release resource!")
+					if err := sendFilemanagerRequest(nonBlockingManager, RENOUNCE); err != nil {
+						continue
+					}
+				}
+			}
+			targetServerObject, err := parseIpColonPortToNetworkServer(fmt.Sprintf("%s:%d", token.GetSourceIP(), token.GetSourcePort()))
+			if err != nil {
+				log.Fatalln(err)
+			}
+			utils.PrintMessage("Send token to WAIT-FOR node.")
+			sendGoldmanToken(targetServerObject)
+			continue
+		}
+		continue
+	}
 }

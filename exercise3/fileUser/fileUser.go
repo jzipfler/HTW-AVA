@@ -251,13 +251,13 @@ func workerFunctionForEvenProcesses() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if err == nil && receivedMessageFromManagerA == nil {
-		return
-	}
 	gotOneResource = true
 	receivedMessageFromManagerB, err := waitForAccessFromManagerB()
 	if err != nil {
 		log.Fatalln(err)
+	}
+	if err == nil && receivedMessageFromManagerA == nil {
+		return
 	}
 	blocking = false
 	gotOneResource = false
@@ -276,13 +276,13 @@ func workerFunctionForUnevenProcesses() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if err == nil && receivedMessageFromManagerB == nil {
-		return
-	}
 	gotOneResource = true
 	receivedMessageFromManagerA, err := waitForAccessFromManagerA()
 	if err != nil {
 		log.Fatalln(err)
+	}
+	if err == nil && receivedMessageFromManagerB == nil {
+		return
 	}
 	blocking = false
 	gotOneResource = false

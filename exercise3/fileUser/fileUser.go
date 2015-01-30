@@ -488,6 +488,8 @@ func handleTokenMessages() {
 	}
 	defer tokenListener.Close()
 
+WAIT_FOR_NEXT:
+
 	for {
 		token := receiveGoldmanToken(tokenListener)
 		//Check if the array of blocking processes contains the id of this process
@@ -496,7 +498,8 @@ func handleTokenMessages() {
 				if value == int32(processId) {
 					utils.PrintMessage("Deadlock, release resource!")
 					if err := sendFilemanagerRequest(nonBlockingManager, RENOUNCE); err != nil {
-						continue
+						time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+						break WAIT_FOR_NEXT
 					}
 				}
 			}

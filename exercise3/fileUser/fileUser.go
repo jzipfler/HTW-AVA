@@ -328,7 +328,7 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 			utils.PrintMessage("Send token to WAIT-FOR node.")
 			blocking = true
 			waitForIpAndPort = receivedMessageFromManagerA.GetProcessIpAndPortThatUsesResource()
-			waitForId = receivedMessageFromManagerA.GetProcessIdThatUsesResource()
+			waitForId = int(receivedMessageFromManagerA.GetProcessIdThatUsesResource())
 			sendGoldmanToken(targetServerObject, nil)
 			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue
@@ -376,7 +376,7 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 			utils.PrintMessage("Send token to WAIT-FOR node.")
 			blocking = true
 			waitForIpAndPort = receivedMessageFromManagerB.GetProcessIpAndPortThatUsesResource()
-			waitForId = receivedMessageFromManagerB.GetProcessIdThatUsesResource()
+			waitForId = int(receivedMessageFromManagerB.GetProcessIdThatUsesResource())
 			sendGoldmanToken(targetServerObject, nil)
 			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue

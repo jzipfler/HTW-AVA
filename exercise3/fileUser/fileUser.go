@@ -326,7 +326,8 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 				log.Fatalln(err)
 			}
 			utils.PrintMessage("Send token to WAIT-FOR node.")
-			sendGoldmanToken(targetServerObject)
+			blocking = true
+			sendGoldmanToken(targetServerObject, nil)
 			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue
 		}
@@ -371,7 +372,8 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 				log.Fatalln(err)
 			}
 			utils.PrintMessage("Send token to WAIT-FOR node.")
-			sendGoldmanToken(targetServerObject)
+			blocking = true
+			sendGoldmanToken(targetServerObject, nil)
 			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue
 		}
@@ -414,16 +416,19 @@ func releaseResourceFromManager(managerToRecover int) error {
 	return errors.New("This error should never happen")
 }
 
-func sendGoldmanToken(destinationNode server.NetworkServer) error {
+func sendGoldmanToken(destinationNode server.NetworkServer, blockingProcesses []int32) error {
 	if destinationNode.IpAndPortAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server information has no ip address or port.\n%s\n", utils.ERROR_FOOTER))
 	}
 	if destinationNode.Port()%2 == 0 {
 		destinationNode.SetPort(destinationNode.Port() + 1)
 	}
+	if blockingProcesses == nil {
+		blockingProcesses = make([]int32, 0)
+	}
 	utils.PrintMessage(fmt.Sprintf("Encode protobuf Token message for node with IP:PORT : %s.", destinationNode.IpAndPortAsString()))
 	protobufMessage := new(protobuf.GoldmanToken)
-	protobufMessage.BlockingProcesses = append(protobufMessage.GetBlockingProcesses(), int32(processId))
+	protobufMessage.BlockingProcesses = append(blockingProcesses, int32(processId))
 	protobufMessage.SourceIP = proto.String(serverObject.IpAddressAsString())
 	protobufMessage.SourcePort = proto.Int(serverObject.Port())
 	//Protobuf message filled with data. Now marshal it.
@@ -496,7 +501,7 @@ func handleTokenMessages() {
 				log.Fatalln(err)
 			}
 			utils.PrintMessage("Send token to WAIT-FOR node.")
-			sendGoldmanToken(targetServerObject)
+			sendGoldmanToken(targetServerObject, token.GetBlockingProcesses())
 			continue
 		}
 		continue

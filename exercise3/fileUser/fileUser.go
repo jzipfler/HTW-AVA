@@ -33,13 +33,12 @@ var (
 	managerAObject server.NetworkServer
 	managerBObject server.NetworkServer
 
-	tokenServer             server.NetworkServer
-	nonBlockingManager      server.NetworkServer
-	waitForIpAndPort        string
-	waitForId               int
-	blocking                bool
-	gotOneResource          bool
-	resourceReleasedChannel chan bool
+	tokenServer        server.NetworkServer
+	nonBlockingManager server.NetworkServer
+	waitForIpAndPort   string
+	waitForId          int
+	blocking           bool
+	gotOneResource     bool
 )
 
 const (

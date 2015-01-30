@@ -132,8 +132,6 @@ func main() {
 	}
 	defer server.StopServer()
 
-	resourceReleasedChannel = make(chan bool)
-
 	go handleMessagesOnUnevenPort()
 
 	for {

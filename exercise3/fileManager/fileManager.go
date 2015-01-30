@@ -31,8 +31,7 @@ var (
 
 	serverObject server.NetworkServer
 
-	releaseServer           server.NetworkServer
-	resourceReleasedChannel chan bool
+	releaseServer server.NetworkServer
 )
 
 const (
@@ -138,14 +137,6 @@ func main() {
 	go handleMessagesOnUnevenPort()
 
 	for {
-		select {
-		case <-resourceReleasedChannel:
-			fileInUse = false
-			usedById = 0
-			usedByIpAndPort = ""
-		default:
-			//NOOP
-		}
 		receivedMessage := receiveAndParseFilemanagerRequest()
 		var reaction int
 		switch receivedMessage.GetAccessOperation() {
@@ -319,7 +310,6 @@ func handleMessagesOnUnevenPort() {
 			usedByIpAndPort = ""
 			reaction = RESOURCE_RELEASED
 			utils.PrintMessage("File successfully released/renounced.")
-			resourceReleasedChannel <- true
 		} else {
 			reaction = RESOURCE_NOT_RELEASED
 		}

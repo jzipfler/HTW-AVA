@@ -414,11 +414,14 @@ func releaseResourceFromManager(managerToRecover int) error {
 	return errors.New("This error should never happen")
 }
 
-func sendGoldmanToken(destinationFileManager server.NetworkServer) error {
-	if destinationFileManager.IpAndPortAsString() == "" {
+func sendGoldmanToken(destinationNode server.NetworkServer) error {
+	if destinationNode.IpAndPortAsString() == "" {
 		return errors.New(fmt.Sprintf("The target server information has no ip address or port.\n%s\n", utils.ERROR_FOOTER))
 	}
-	utils.PrintMessage(fmt.Sprintf("Encode protobuf Token message for node with IP:PORT : %s.", destinationFileManager.IpAndPortAsString()))
+	if destinationNode.Port()%2 == 0 {
+		destinationNode.SetPort(destinationNode.Port() + 1)
+	}
+	utils.PrintMessage(fmt.Sprintf("Encode protobuf Token message for node with IP:PORT : %s.", destinationNode.IpAndPortAsString()))
 	protobufMessage := new(protobuf.GoldmanToken)
 	protobufMessage.BlockingProcesses = append(protobufMessage.GetBlockingProcesses(), int32(processId))
 	protobufMessage.SourceIP = proto.String(serverObject.IpAddressAsString())
@@ -428,7 +431,7 @@ func sendGoldmanToken(destinationFileManager server.NetworkServer) error {
 	if err != nil {
 		return err
 	}
-	conn, err := net.Dial("tcp", destinationFileManager.IpAndPortAsString())
+	conn, err := net.Dial("tcp", destinationNode.IpAndPortAsString())
 	if err != nil {
 		return err
 	}
@@ -437,7 +440,7 @@ func sendGoldmanToken(destinationFileManager server.NetworkServer) error {
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("Token message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
+	utils.PrintMessage(fmt.Sprintf("Token message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationNode.IpAndPortAsString(), protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
 }

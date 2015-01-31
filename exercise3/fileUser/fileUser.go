@@ -449,7 +449,12 @@ func releaseResourceFromManager(managerToRecover int) error {
 		case protobuf.FilemanagerResponse_ACCESS_DENIED:
 			fallthrough
 		default:
-			utils.PrintMessage("Received wrong answer from the server.")
+			utils.PrintMessage("Trying to release the resource but don't get RESOURCE_RELEASED. Check if we own it.")
+			if receivedMessageFromManager.GetProcessIdThatUsesResource() != int32(processId) {
+				utils.PrintMessage("Nope, we do not own it, let us abort this and try to get access again.")
+				return nil
+			}
+			utils.PrintMessage("Yep, we own it, lets wait for the OK.")
 			continue
 		}
 	}

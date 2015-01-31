@@ -1,4 +1,4 @@
-.PHONY: all, clean, clear, fileManager, fileUser
+.PHONY: all clean clear fileManager fileUser
 
 all: fileManager fileUser
 

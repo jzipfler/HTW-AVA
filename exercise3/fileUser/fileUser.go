@@ -326,8 +326,15 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 			time.Sleep(time.Duration(sleepTime) * time.Second)
 			return nil, nil
 		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager A. Continue.")
-			continue
+			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager A.")
+			if receivedMessageFromManagerA.GetProcessIdThatUsesResource() == int32(processId) {
+				utils.PrintMessage("...but we have already access to that resource, so return it to go on.")
+				return receivedMessageFromManagerA, nil
+			} else {
+				utils.PrintMessage("...but we do not own this resource, so continue try to getting it.")
+				time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+				continue
+			}
 		case protobuf.FilemanagerResponse_ACCESS_DENIED:
 			fallthrough
 		default:
@@ -381,9 +388,15 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 			time.Sleep(time.Duration(sleepTime) * time.Second)
 			return nil, nil
 		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
-			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager B. Continue.")
-			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
-			continue
+			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager B.")
+			if receivedMessageFromManagerB.GetProcessIdThatUsesResource() == int32(processId) {
+				utils.PrintMessage("...but we have already access to that resource, so return it to go on.")
+				return receivedMessageFromManagerB, nil
+			} else {
+				utils.PrintMessage("...but we do not own this resource, so continue try to getting it.")
+				time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+				continue
+			}
 		case protobuf.FilemanagerResponse_ACCESS_DENIED:
 			fallthrough
 		default:

@@ -159,6 +159,7 @@ func main() {
 				utils.PrintMessage("File successfully released/renounced.")
 			} else {
 				reaction = RESOURCE_NOT_RELEASED
+				utils.PrintMessage(fmt.Sprintf("Resource not released. ID %d != %d!", usedById, receivedMessage.GetSourceID()))
 			}
 		}
 		if err := sendFilemanagerResponse(receivedMessage.GetSourceIP(), int(receivedMessage.GetSourcePort()), reaction); err != nil {
@@ -214,7 +215,7 @@ func receiveAndParseFilemanagerRequest() *protobuf.FilemanagerRequest {
 	if err != nil {
 		log.Fatal("Error happened: " + err.Error())
 	}
-	utils.PrintMessage("Message decoded.")
+	utils.PrintMessage(fmt.Sprintf("FilemanagerRequest decoded.\n\n%s\n\n", protodata))
 	return protodata
 }
 
@@ -285,7 +286,7 @@ func handleMessagesOnUnevenPort() {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		utils.PrintMessage("Incoming message")
+		utils.PrintMessage("Incoming message (Used to be a DEADLOCK-RENOUNCE message)")
 		defer conn.Close()
 		data := make([]byte, 4096)
 		n, err := conn.Read(data)
@@ -298,17 +299,20 @@ func handleMessagesOnUnevenPort() {
 			log.Fatalln(err)
 		}
 		utils.PrintMessage(fmt.Sprintf("Request decoded.\n\n%s\n\n", request))
-		if request.GetAccessOperation() != protobuf.FilemanagerRequest_RENOUNCE || request.GetAccessOperation() != protobuf.FilemanagerRequest_RELEASE {
+		if request.GetAccessOperation() == protobuf.FilemanagerRequest_GET {
 			sendFilemanagerResponse(request.GetSourceIP(), int(request.GetSourcePort()-1), RESOURCE_NOT_RELEASED)
 		}
 		//Check if the array of blocking processes contains the id of this process
+		utils.PrintMessage("Message is a RELEASE or RENOUNCE message, check if this process id blocks the file.")
 		if fileInUse && usedById == request.GetSourceID() {
+			utils.PrintMessage("YES, this process id blocks the file, RELEASE it!")
 			fileInUse = false
 			usedById = 0
 			usedByIpAndPort = ""
 			reaction = RESOURCE_RELEASED
 			utils.PrintMessage("File successfully released/renounced.")
 		} else {
+			utils.PrintMessage("NO, this process id does not block the file, DO NOT RELEASE it!")
 			reaction = RESOURCE_NOT_RELEASED
 		}
 		sendFilemanagerResponse(request.GetSourceIP(), int(request.GetSourcePort()-1), reaction)

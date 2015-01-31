@@ -529,34 +529,37 @@ func handleTokenMessages() {
 	}
 	defer tokenListener.Close()
 
-WAIT_FOR_NEXT:
-
 	for {
+
 		token := receiveGoldmanToken(tokenListener)
 		if token.GetSourcePort()%2 == 0 {
 			token.SourcePort = proto.Int32(token.GetSourcePort() + 1)
 		}
 		//Check if the array of blocking processes contains the id of this process
 		if blocking {
+			thisClientCausesDeadlock := false
 			for _, value := range token.GetBlockingProcesses() {
 				if value == int32(processId) {
-					utils.PrintMessage("Deadlock, release resource!")
-					if err := sendFilemanagerRequest(nonBlockingManager, RENOUNCE); err != nil {
-						fmt.Fprintf(os.Stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n%v\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", err)
-						time.Sleep(2 * SECONDS_UNTIL_NEXT_TRY * time.Second)
-						break WAIT_FOR_NEXT
-					}
+					thisClientCausesDeadlock = true
 				}
 			}
-			time.Sleep(2 * SECONDS_UNTIL_NEXT_TRY * time.Second)
-			targetServerObject, err := parseIpColonPortToNetworkServer(fmt.Sprintf("%s:%d", token.GetSourceIP(), token.GetSourcePort()))
-			if err != nil {
-				log.Fatalln(err)
+			if thisClientCausesDeadlock {
+				utils.PrintMessage("Deadlock, release resource!")
+				if err := sendFilemanagerRequest(nonBlockingManager, RENOUNCE); err != nil {
+					log.Fatalln(err)
+				}
+				time.Sleep(2 * SECONDS_UNTIL_NEXT_TRY * time.Second)
+			} else {
+				time.Sleep(2 * SECONDS_UNTIL_NEXT_TRY * time.Second)
+				targetServerObject, err := parseIpColonPortToNetworkServer(fmt.Sprintf("%s:%d", token.GetSourceIP(), token.GetSourcePort()))
+				if err != nil {
+					log.Fatalln(err)
+				}
+				utils.PrintMessage("Send token to WAIT-FOR node.")
+				if err := sendGoldmanToken(targetServerObject, token.GetBlockingProcesses()); err != nil {
+					log.Fatalln(err)
+				}
 			}
-			utils.PrintMessage("Send token to WAIT-FOR node.")
-			sendGoldmanToken(targetServerObject, token.GetBlockingProcesses())
-			continue
 		}
-		continue
 	}
 }

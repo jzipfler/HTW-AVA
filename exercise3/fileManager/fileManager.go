@@ -140,8 +140,13 @@ func main() {
 		switch receivedMessage.GetAccessOperation() {
 		case protobuf.FilemanagerRequest_GET:
 			if fileInUse {
-				utils.PrintMessage(fmt.Sprintf("Access denied, file in use by %d-%s", usedById, usedByIpAndPort))
-				reaction = ACCESS_DENIED
+				if usedById == receivedMessage.GetSourceID() {
+					utils.PrintMessage(fmt.Sprintf("Somebody asks about permission where he already have access to. --> Access granted."))
+					reaction = ACCESS_GRANTED
+				} else {
+					utils.PrintMessage(fmt.Sprintf("Access denied, file in use by %d-%s", usedById, usedByIpAndPort))
+					reaction = ACCESS_DENIED
+				}
 			} else {
 				fileInUse = true
 				usedByIpAndPort = fmt.Sprintf("%s:%d", receivedMessage.GetSourceIP(), int(receivedMessage.GetSourcePort()))

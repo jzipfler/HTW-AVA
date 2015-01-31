@@ -164,6 +164,8 @@ func main() {
 
 	for {
 		work()
+		time.Sleep(time.Duration(rand.Float32()) * time.Second)
+		//time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
 	}
 }
 
@@ -222,7 +224,7 @@ func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reactio
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("FilemanagerRequest message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
+	utils.PrintMessage(fmt.Sprintf("FilemanagerRequest message from %s to %s sent:\n\n%s\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
 }
@@ -244,7 +246,7 @@ func receiveFilemanagerResponses() *protobuf.FilemanagerResponse {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	utils.PrintMessage(fmt.Sprintf("FilemanagerResponse decoded.\n\n%s\n\n", protoFilemanagerResponseMessage))
+	utils.PrintMessage(fmt.Sprintf("FilemanagerResponse decoded.\n\n%s\n", protoFilemanagerResponseMessage))
 	return protoFilemanagerResponseMessage
 }
 
@@ -260,17 +262,23 @@ func workerFunctionForEvenProcesses() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if err == nil && receivedMessageFromManagerA == nil {
+	if err == nil && receivedMessageFromManagerB == nil {
+		blocking = false
+		gotOneResource = false
 		return
 	}
-	blocking = false
-	gotOneResource = false
 	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
 	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerA.GetFilename(), strconv.Itoa(processId), true)
-	releaseResourceFromManager(MANAGER_A)
-	releaseResourceFromManager(MANAGER_B)
+	if err := releaseResourceFromManager(MANAGER_A); err != nil {
+		log.Fatalln(err)
+	}
+	if err := releaseResourceFromManager(MANAGER_B); err != nil {
+		log.Fatalln(err)
+	}
+	blocking = false
+	gotOneResource = false
 }
 
 func workerFunctionForUnevenProcesses() {
@@ -285,17 +293,23 @@ func workerFunctionForUnevenProcesses() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if err == nil && receivedMessageFromManagerB == nil {
+	if err == nil && receivedMessageFromManagerA == nil {
+		blocking = false
+		gotOneResource = false
 		return
 	}
-	blocking = false
-	gotOneResource = false
 	utils.IncreaseNumbersFromFirstLine(receivedMessageFromManagerB.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerB.GetFilename(), strconv.Itoa(processId), true)
 	utils.DecreaseNumbersFromFirstLine(receivedMessageFromManagerA.GetFilename(), 6)
 	utils.AppendStringToFile(receivedMessageFromManagerA.GetFilename(), strconv.Itoa(processId), true)
-	releaseResourceFromManager(MANAGER_B)
-	releaseResourceFromManager(MANAGER_A)
+	if err := releaseResourceFromManager(MANAGER_B); err != nil {
+		log.Fatalln(err)
+	}
+	if err := releaseResourceFromManager(MANAGER_A); err != nil {
+		log.Fatalln(err)
+	}
+	blocking = false
+	gotOneResource = false
 }
 
 func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
@@ -350,7 +364,9 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 				blocking = true
 				waitForIpAndPort = receivedMessageFromManagerA.GetProcessIpAndPortThatUsesResource()
 				waitForId = int(receivedMessageFromManagerA.GetProcessIdThatUsesResource())
-				sendGoldmanToken(targetServerObject, nil)
+				if err := sendGoldmanToken(targetServerObject, nil); err != nil {
+					log.Fatalln(err)
+				}
 			}
 			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue
@@ -412,7 +428,9 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 				blocking = true
 				waitForIpAndPort = receivedMessageFromManagerB.GetProcessIpAndPortThatUsesResource()
 				waitForId = int(receivedMessageFromManagerB.GetProcessIdThatUsesResource())
-				sendGoldmanToken(targetServerObject, nil)
+				if err := sendGoldmanToken(targetServerObject, nil); err != nil {
+					log.Fatalln(err)
+				}
 			}
 			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue
@@ -474,8 +492,8 @@ func sendGoldmanToken(destinationNode server.NetworkServer, blockingProcesses []
 	utils.PrintMessage(fmt.Sprintf("Encode protobuf Token message for node with IP:PORT : %s.", destinationNode.IpAndPortAsString()))
 	protobufMessage := new(protobuf.GoldmanToken)
 	protobufMessage.BlockingProcesses = append(blockingProcesses, int32(processId))
-	protobufMessage.SourceIP = proto.String(serverObject.IpAddressAsString())
-	protobufMessage.SourcePort = proto.Int(serverObject.Port() + 1)
+	protobufMessage.SourceIP = proto.String(tokenServer.IpAddressAsString())
+	protobufMessage.SourcePort = proto.Int(tokenServer.Port())
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {
@@ -490,7 +508,7 @@ func sendGoldmanToken(destinationNode server.NetworkServer, blockingProcesses []
 	if err != nil {
 		return err
 	}
-	utils.PrintMessage(fmt.Sprintf("Token message from %s to %s sent:\n\n%s\n\n", serverObject.String(), destinationNode.IpAndPortAsString(), protobufMessage.String()))
+	utils.PrintMessage(fmt.Sprintf("Token message from %s to %s sent:\n\n%s\n", tokenServer.String(), destinationNode.IpAndPortAsString(), protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
 }
@@ -512,7 +530,7 @@ func receiveGoldmanToken(tokenListener net.Listener) *protobuf.GoldmanToken {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	utils.PrintMessage(fmt.Sprintf("Token decoded.\n\n%s\n\n", token))
+	utils.PrintMessage(fmt.Sprintf("Token decoded.\n\n%s\n", token))
 	return token
 }
 

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
@@ -121,6 +122,9 @@ func main() {
 
 	utils.InitializeLogger(logFile, fmt.Sprintf("%d > ", processId))
 
+	//Initialize random generator
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	var err error
 	managerAObject, err = parseIpColonPortToNetworkServer(managerA)
 	if err != nil {
@@ -167,7 +171,7 @@ func parseIpColonPortToNetworkServer(managerInformation string) (server.NetworkS
 	serverObject := server.New()
 	managerInformation = strings.Trim(managerInformation, " \t")
 	if managerInformation == "" {
-		return serverObject, errors.New("The information about the entiry was empty.")
+		return serverObject, errors.New("Can not parse IP:PORT because the incoming string was empty.")
 	}
 	if !strings.Contains(managerInformation, ":") {
 		return serverObject, errors.New("The information must use the format \"IPADDRESS:PORT\", but no \":\" was found.")
@@ -313,6 +317,13 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 			return receivedMessageFromManagerA, nil
 		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
 			utils.PrintMessage("Received RESOURCE_RELEASED from manager A. Releasing...")
+			gotOneResource = false
+			blocking = false
+			nonBlockingManager = server.New()
+			waitForId = 0
+			waitForIpAndPort = ""
+			sleepTime := rand.Intn(5) + SECONDS_UNTIL_NEXT_TRY
+			time.Sleep(time.Duration(sleepTime) * time.Second)
 			return nil, nil
 		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
 			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager A. Continue.")
@@ -321,15 +332,19 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 			fallthrough
 		default:
 			utils.PrintMessage("Access denied from manager A.")
-			targetServerObject, err := parseIpColonPortToNetworkServer(receivedMessageFromManagerA.GetProcessIpAndPortThatUsesResource())
-			if err != nil {
-				log.Fatalln(err)
+			if gotOneResource {
+				utils.PrintMessage("Got already one resource, waiting for the next one.")
+				targetServerObject, err := parseIpColonPortToNetworkServer(receivedMessageFromManagerA.GetProcessIpAndPortThatUsesResource())
+				if err != nil {
+					log.Fatalln(err)
+				}
+				utils.PrintMessage("Send token to WAIT-FOR node.")
+				nonBlockingManager = managerBObject
+				blocking = true
+				waitForIpAndPort = receivedMessageFromManagerA.GetProcessIpAndPortThatUsesResource()
+				waitForId = int(receivedMessageFromManagerA.GetProcessIdThatUsesResource())
+				sendGoldmanToken(targetServerObject, nil)
 			}
-			utils.PrintMessage("Send token to WAIT-FOR node.")
-			blocking = true
-			waitForIpAndPort = receivedMessageFromManagerA.GetProcessIpAndPortThatUsesResource()
-			waitForId = int(receivedMessageFromManagerA.GetProcessIdThatUsesResource())
-			sendGoldmanToken(targetServerObject, nil)
 			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue
 		}
@@ -360,6 +375,10 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 			gotOneResource = false
 			blocking = false
 			nonBlockingManager = server.New()
+			waitForId = 0
+			waitForIpAndPort = ""
+			sleepTime := rand.Intn(5) + SECONDS_UNTIL_NEXT_TRY
+			time.Sleep(time.Duration(sleepTime) * time.Second)
 			return nil, nil
 		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
 			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager B. Continue.")
@@ -369,15 +388,19 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 			fallthrough
 		default:
 			utils.PrintMessage("Access denied from manager B.")
-			targetServerObject, err := parseIpColonPortToNetworkServer(receivedMessageFromManagerB.GetProcessIpAndPortThatUsesResource())
-			if err != nil {
-				log.Fatalln(err)
+			if gotOneResource {
+				utils.PrintMessage("Got already one resource, waiting for the next one.")
+				targetServerObject, err := parseIpColonPortToNetworkServer(receivedMessageFromManagerB.GetProcessIpAndPortThatUsesResource())
+				if err != nil {
+					log.Fatalln(err)
+				}
+				utils.PrintMessage("Send token to WAIT-FOR node.")
+				nonBlockingManager = managerAObject
+				blocking = true
+				waitForIpAndPort = receivedMessageFromManagerB.GetProcessIpAndPortThatUsesResource()
+				waitForId = int(receivedMessageFromManagerB.GetProcessIdThatUsesResource())
+				sendGoldmanToken(targetServerObject, nil)
 			}
-			utils.PrintMessage("Send token to WAIT-FOR node.")
-			blocking = true
-			waitForIpAndPort = receivedMessageFromManagerB.GetProcessIpAndPortThatUsesResource()
-			waitForId = int(receivedMessageFromManagerB.GetProcessIdThatUsesResource())
-			sendGoldmanToken(targetServerObject, nil)
 			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
 			continue
 		}
@@ -434,7 +457,7 @@ func sendGoldmanToken(destinationNode server.NetworkServer, blockingProcesses []
 	protobufMessage := new(protobuf.GoldmanToken)
 	protobufMessage.BlockingProcesses = append(blockingProcesses, int32(processId))
 	protobufMessage.SourceIP = proto.String(serverObject.IpAddressAsString())
-	protobufMessage.SourcePort = proto.Int(serverObject.Port())
+	protobufMessage.SourcePort = proto.Int(serverObject.Port() + 1)
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
 	if err != nil {
@@ -492,17 +515,22 @@ WAIT_FOR_NEXT:
 
 	for {
 		token := receiveGoldmanToken(tokenListener)
+		if token.GetSourcePort()%2 == 0 {
+			token.SourcePort = proto.Int32(token.GetSourcePort() + 1)
+		}
 		//Check if the array of blocking processes contains the id of this process
 		if blocking {
 			for _, value := range token.GetBlockingProcesses() {
 				if value == int32(processId) {
 					utils.PrintMessage("Deadlock, release resource!")
 					if err := sendFilemanagerRequest(nonBlockingManager, RENOUNCE); err != nil {
-						time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+						fmt.Fprintf(os.Stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n%v\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", err)
+						time.Sleep(2 * SECONDS_UNTIL_NEXT_TRY * time.Second)
 						break WAIT_FOR_NEXT
 					}
 				}
 			}
+			time.Sleep(2 * SECONDS_UNTIL_NEXT_TRY * time.Second)
 			targetServerObject, err := parseIpColonPortToNetworkServer(fmt.Sprintf("%s:%d", token.GetSourceIP(), token.GetSourcePort()))
 			if err != nil {
 				log.Fatalln(err)

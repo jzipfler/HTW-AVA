@@ -27,6 +27,7 @@ var (
 	id          int
 	managedFile *os.File
 	force       bool
+	slowRunning bool
 	managerA    string
 	managerB    string
 
@@ -64,6 +65,7 @@ func init() {
 	flag.StringVar(&managerA, "managerA", "127.0.0.1:15100", "The ip address and port of manager A. (Portnumber must be even)")
 	flag.StringVar(&managerB, "managerB", "127.0.0.1:15100", "The ip address and port of manager B. (Portnumber must be even)")
 	flag.IntVar(&id, "id", 1337, "With this option, a optional id can be specified. If not, the id becomes the process id of this program.")
+	flag.BoolVar(&slowRunning, "slow", false, "If slow is set to true, the fileUser will restart each request after a time interval from [0,5) seconds randomly, otherwise between 1ms and 1s.")
 }
 
 func main() {
@@ -164,8 +166,11 @@ func main() {
 
 	for {
 		work()
-		time.Sleep(time.Duration(rand.Float32()) * time.Second)
-		//time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
+		if slowRunning {
+			time.Sleep(time.Duration(rand.Float32()*5) * time.Second)
+		} else {
+			time.Sleep(time.Duration(rand.Float32()*100) * time.Millisecond)
+		}
 	}
 }
 
@@ -336,8 +341,7 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 			nonBlockingManager = server.New()
 			waitForId = 0
 			waitForIpAndPort = ""
-			sleepTime := rand.Intn(5) + SECONDS_UNTIL_NEXT_TRY
-			time.Sleep(time.Duration(sleepTime) * time.Second)
+			time.Sleep(time.Duration(SECONDS_UNTIL_NEXT_TRY*100*rand.Float32()) * time.Millisecond)
 			return nil, nil
 		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
 			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager A.")
@@ -346,7 +350,7 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 				return receivedMessageFromManagerA, nil
 			} else {
 				utils.PrintMessage("...but we do not own this resource, so continue try to getting it.")
-				time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+				time.Sleep(time.Duration(SECONDS_UNTIL_NEXT_TRY*100*rand.Float32()) * time.Millisecond)
 				continue
 			}
 		case protobuf.FilemanagerResponse_ACCESS_DENIED:
@@ -368,7 +372,7 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 					log.Fatalln(err)
 				}
 			}
-			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+			time.Sleep(time.Duration(SECONDS_UNTIL_NEXT_TRY*100*rand.Float32()) * time.Millisecond)
 			continue
 		}
 	}
@@ -382,7 +386,7 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 		}
 		var receivedMessageFromManagerB *protobuf.FilemanagerResponse
 		if receivedMessageFromManagerB = receiveFilemanagerResponses(); receivedMessageFromManagerB == nil {
-			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+			time.Sleep(time.Duration(SECONDS_UNTIL_NEXT_TRY*100*rand.Float32()) * time.Millisecond)
 			continue
 		}
 		switch receivedMessageFromManagerB.GetRequestReaction() {
@@ -400,8 +404,7 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 			nonBlockingManager = server.New()
 			waitForId = 0
 			waitForIpAndPort = ""
-			sleepTime := rand.Intn(5) + SECONDS_UNTIL_NEXT_TRY
-			time.Sleep(time.Duration(sleepTime) * time.Second)
+			time.Sleep(time.Duration(SECONDS_UNTIL_NEXT_TRY*100*rand.Float32()) * time.Millisecond)
 			return nil, nil
 		case protobuf.FilemanagerResponse_RESOURCE_NOT_RELEASED:
 			utils.PrintMessage("Received RESOURCE_NOT_RELEASED from manager B.")
@@ -410,7 +413,7 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 				return receivedMessageFromManagerB, nil
 			} else {
 				utils.PrintMessage("...but we do not own this resource, so continue try to getting it.")
-				time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+				time.Sleep(time.Duration(SECONDS_UNTIL_NEXT_TRY*100*rand.Float32()) * time.Millisecond)
 				continue
 			}
 		case protobuf.FilemanagerResponse_ACCESS_DENIED:
@@ -432,7 +435,7 @@ func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 					log.Fatalln(err)
 				}
 			}
-			time.Sleep(SECONDS_UNTIL_NEXT_TRY * time.Second)
+			time.Sleep(time.Duration(SECONDS_UNTIL_NEXT_TRY*100*rand.Float32()) * time.Millisecond)
 			continue
 		}
 	}
@@ -566,9 +569,9 @@ func handleTokenMessages() {
 				if err := sendFilemanagerRequest(nonBlockingManager, RENOUNCE); err != nil {
 					log.Fatalln(err)
 				}
-				time.Sleep(2 * SECONDS_UNTIL_NEXT_TRY * time.Second)
+				time.Sleep(time.Duration(SECONDS_UNTIL_NEXT_TRY*100*rand.Float32()) * time.Millisecond)
 			} else {
-				time.Sleep(2 * SECONDS_UNTIL_NEXT_TRY * time.Second)
+				time.Sleep(time.Duration(SECONDS_UNTIL_NEXT_TRY*100*rand.Float32()) * time.Millisecond)
 				targetServerObject, err := parseIpColonPortToNetworkServer(fmt.Sprintf("%s:%d", token.GetSourceIP(), token.GetSourcePort()))
 				if err != nil {
 					log.Fatalln(err)

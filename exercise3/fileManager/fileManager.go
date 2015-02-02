@@ -10,12 +10,34 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/jzipfler/htw-ava/protobuf"
 	"github.com/jzipfler/htw-ava/server"
 	"github.com/jzipfler/htw-ava/utils"
 )
+
+type idMutex struct {
+	id    int32
+	mutex *sync.RWMutex
+}
+
+func (u *idMutex) SetId(id int32) {
+	u.mutex.Lock()
+	defer u.mutex.Unlock()
+	u.id = id
+}
+
+func (u idMutex) Id() int32 {
+	u.mutex.RLock()
+	defer u.mutex.RUnlock()
+	return u.id
+}
+
+func NewIdMutex() *idMutex {
+	return &idMutex{0, new(sync.RWMutex)}
+}
 
 var (
 	filename        string
@@ -26,7 +48,7 @@ var (
 	managedFile     *os.File
 	force           bool
 	fileInUse       bool
-	usedById        int32
+	usedById        *idMutex
 	usedByIpAndPort string
 
 	serverObject server.NetworkServer
@@ -120,6 +142,9 @@ func main() {
 	utils.PrintMessage("Wrote 000000 to the file.")
 	managedFile.Close()
 
+	//Initiate idMute
+	usedById = NewIdMutex()
+
 	serverObject = server.New()
 	serverObject.SetClientName(managerName)
 	serverObject.SetIpAddressAsString(ipAddress)
@@ -140,31 +165,33 @@ func main() {
 		switch receivedMessage.GetAccessOperation() {
 		case protobuf.FilemanagerRequest_GET:
 			if fileInUse {
-				if usedById == receivedMessage.GetSourceID() {
+				if usedById.Id() == receivedMessage.GetSourceID() {
 					utils.PrintMessage(fmt.Sprintf("Somebody asks about permission where he already have access to. --> Access granted."))
 					reaction = ACCESS_GRANTED
 				} else {
-					utils.PrintMessage(fmt.Sprintf("Access denied, file in use by %d-%s", usedById, usedByIpAndPort))
+					utils.PrintMessage(fmt.Sprintf("Access denied, file in use by %d-%s", usedById.Id(), usedByIpAndPort))
 					reaction = ACCESS_DENIED
 				}
 			} else {
-				fileInUse = true
-				usedByIpAndPort = fmt.Sprintf("%s:%d", receivedMessage.GetSourceIP(), int(receivedMessage.GetSourcePort()))
-				usedById = receivedMessage.GetSourceID()
-				utils.PrintMessage(fmt.Sprintf("Access granted, file is now in use by %d-%s", usedById, usedByIpAndPort))
-				reaction = ACCESS_GRANTED
+				if receivedMessage.GetSourceID() != 0 {
+					fileInUse = true
+					usedByIpAndPort = fmt.Sprintf("%s:%d", receivedMessage.GetSourceIP(), int(receivedMessage.GetSourcePort()))
+					usedById.SetId(receivedMessage.GetSourceID())
+					utils.PrintMessage(fmt.Sprintf("Access granted, file is now in use by %d-%s", usedById.Id(), usedByIpAndPort))
+					reaction = ACCESS_GRANTED
+				}
 			}
 		case protobuf.FilemanagerRequest_RELEASE, protobuf.FilemanagerRequest_RENOUNCE:
-			utils.PrintMessage(fmt.Sprintf("Release/Renounce requested, file is in use by %d-%s", usedById, usedByIpAndPort))
-			if fileInUse && usedById == receivedMessage.GetSourceID() {
+			utils.PrintMessage(fmt.Sprintf("Release/Renounce requested from client with ID: %d. File is in use by %d-%s", receivedMessage.GetSourceID(), usedById.Id(), usedByIpAndPort))
+			if fileInUse && usedById.Id() == receivedMessage.GetSourceID() {
 				fileInUse = false
-				usedById = 0
+				usedById.SetId(0)
 				usedByIpAndPort = ""
 				reaction = RESOURCE_RELEASED
-				utils.PrintMessage("File successfully released/renounced.")
+				utils.PrintMessage("File will be released/renounced now.")
 			} else {
 				reaction = RESOURCE_NOT_RELEASED
-				utils.PrintMessage(fmt.Sprintf("Resource not released. ID %d != %d!", usedById, receivedMessage.GetSourceID()))
+				utils.PrintMessage(fmt.Sprintf("Resource not released. ID %d != %d!", usedById.Id(), receivedMessage.GetSourceID()))
 			}
 		}
 		if err := sendFilemanagerResponse(receivedMessage.GetSourceIP(), int(receivedMessage.GetSourcePort()), reaction); err != nil {
@@ -249,9 +276,9 @@ func sendFilemanagerResponse(destinationIp string, destinationPort, reaction int
 		requestReaction = protobuf.FilemanagerResponse_RequestReaction(ACCESS_DENIED)
 	}
 	protobufMessage.RequestReaction = &requestReaction
-	if usedByIpAndPort != "" && usedById != 0 {
+	if usedByIpAndPort != "" && usedById.Id() != 0 {
 		protobufMessage.ProcessIpAndPortThatUsesResource = proto.String(usedByIpAndPort)
-		protobufMessage.ProcessIdThatUsesResource = proto.Int32(usedById)
+		protobufMessage.ProcessIdThatUsesResource = proto.Int32(usedById.Id())
 	}
 	//Protobuf message filled with data. Now marshal it.
 	data, err := proto.Marshal(protobufMessage)
@@ -309,10 +336,10 @@ func handleMessagesOnUnevenPort() {
 		}
 		//Check if the array of blocking processes contains the id of this process
 		utils.PrintMessage("Message is a RELEASE or RENOUNCE message, check if this process id blocks the file.")
-		if fileInUse && usedById == request.GetSourceID() {
+		if fileInUse && usedById.Id() == request.GetSourceID() {
 			utils.PrintMessage("YES, this process id blocks the file, RELEASE it!")
 			fileInUse = false
-			usedById = 0
+			usedById.SetId(0)
 			usedByIpAndPort = ""
 			reaction = RESOURCE_RELEASED
 			utils.PrintMessage("File successfully released/renounced.")

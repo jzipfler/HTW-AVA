@@ -20,6 +20,7 @@ var (
 	id                        int
 	ipAddress                 string
 	port                      int
+	useTCP                    bool
 	messageContent            string
 	rumor                     string
 	nodeListFile              string
@@ -48,6 +49,7 @@ func init() {
 	flag.StringVar(&logFile, "logFile", "path/to/logfile.txt", "This parameter can be used to print the logging output to the given file.")
 	flag.BoolVar(&isController, "isController", false, "Tell the node if he should act as controller or as independent node.")
 	flag.BoolVar(&rumorExperimentMode, "rumorExperiment", false, "The last part of the first exercise is a experiment that can be enabled with this parameter.")
+	flag.BoolVar(&useTCP, "useTCP", false, "If this value is set to true, the application uses TCP to communicate.")
 }
 
 // The main function is used when the programm is called / executed.
@@ -82,7 +84,11 @@ func main() {
 		controllerNode.SetClientName("Controller")
 		controllerNode.SetIpAddressAsString(ipAddress)
 		controllerNode.SetPort(port)
-		controllerNode.SetUsedProtocol("tcp")
+		if useTCP {
+			controllerNode.SetUsedProtocol("tcp")
+		} else {
+			controllerNode.SetUsedProtocol("udp")
+		}
 		exercise1.StartController(controllerNode, allNodes, messageContent)
 	} else {
 		if graphvizFile == "path/to/graphviz.{txt,dot}" {
@@ -99,7 +105,7 @@ func main() {
 		// Use this to set the number of used CPUs
 		//runtime.GOMAXPROCS(runtime.NumCPU())
 		utils.PrintMessage(fmt.Sprintf("The following %d neighbors are chosen: %v", len(neighbors), neighbors))
-		exercise1.StartIndependentNode(id, allNodes, neighbors, rumorExperimentMode)
+		exercise1.StartIndependentNode(id, allNodes, neighbors, rumorExperimentMode, useTCP)
 	}
 }
 

@@ -34,10 +34,11 @@ func SendProtobufApplicationMessage(sourceServer, destinationServer server.Netwo
 	if err != nil {
 		return err
 	}
-	conn, err := net.Dial(destinationServer.UsedProtocol(), destinationServer.IpAndPortAsString())
+	conn, err := net.Dial(sourceServer.UsedProtocol(), destinationServer.IpAndPortAsString())
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	n, err := conn.Write(data)
 	if err != nil {
 		return err
@@ -79,10 +80,11 @@ func SendProtobufControlMessage(sourceServer, destinationServer server.NetworkSe
 		return err
 	}
 	utils.PrintMessage(fmt.Sprintf("Control message from %s to %s sent:\n\n%s\n\n", sourceServer.String(), destinationServer.String(), protobufMessage.String()))
-	conn, err := net.Dial(destinationServer.UsedProtocol(), destinationServer.IpAndPortAsString())
+	conn, err := net.Dial(sourceServer.UsedProtocol(), destinationServer.IpAndPortAsString())
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	n, err := conn.Write(data)
 	if err != nil {
 		return err

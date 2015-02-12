@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/jzipfler/htw-ava/client"
 	"github.com/jzipfler/htw-ava/protobuf"
 	"github.com/jzipfler/htw-ava/server"
 	"github.com/jzipfler/htw-ava/utils"
@@ -31,7 +33,7 @@ var (
 
 // With this function an node that interacts independently gets started.
 // He can be controlled with a controller.
-func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[int]server.NetworkServer, rumorExperimentMode bool) {
+func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[int]server.NetworkServer, rumorExperimentMode, useTcp bool) {
 	if allAvailableNodes == nil {
 		utils.PrintMessage(fmt.Sprintf("To start the node, there must be a node map which is currently nil.\n%s\n", utils.ERROR_FOOTER))
 		os.Exit(1)
@@ -48,6 +50,11 @@ func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[
 	allNodes = allAvailableNodes
 	neighbors = neighborNodes
 	localNode = allAvailableNodes[localNodeId]
+	if useTcp {
+		localNode.SetUsedProtocol(client.TCP)
+	} else {
+		localNode.SetUsedProtocol(client.UDP)
+	}
 	rumors = make([]int, len(allNodes), len(allNodes))
 	messageToAllNeighborsSent = false
 	rumorExperiment = rumorExperimentMode
@@ -57,21 +64,43 @@ func StartIndependentNode(localNodeId int, allAvailableNodes, neighborNodes map[
 	protobufChannel := make(chan *protobuf.Nachricht)
 	//A goroutine that receives the protobuf message and reacts to it.
 	go handleReceivedProtobufMessageWithChannel(localNode, protobufChannel)
-	if err := server.StartServer(localNode, nil); err != nil {
-		log.Fatal("Error happened: " + err.Error())
+
+	var localNodeUdpAddress *net.UDPAddr
+	if localNode.UsedProtocol() == client.TCP {
+		if err := server.StartServer(localNode, nil); err != nil {
+			log.Fatal("Error happened: " + err.Error())
+		}
+		defer server.StopServer()
+	} else if localNode.UsedProtocol() == client.UDP {
+		//Do nothing except to get the UDPAdress because the UDP call can gather packages directly
+		//without call the Listen and then the Accept function. (like in TCP)
+		var err error
+		localNodeUdpAddress, err = net.ResolveUDPAddr(localNode.UsedProtocol(), localNode.IpAndPortAsString())
+		if err != nil {
+			log.Fatalln("Error happened: Can not convert the local address information to a UdpAdressObject.")
+		}
+		log.Println(fmt.Sprintf("Created UDP information for node %d: %v", localNodeId, localNodeUdpAddress))
+	} else {
+		log.Fatalln("Error happened: The given protocol to start the server on the independend node, was neigther tcp nor udp.")
 	}
-	defer server.StopServer()
 
 	for {
-		//ReceiveMessage blocks until a message comes in
-		if conn, err := server.ReceiveMessage(); err == nil {
-			//If err is nil then that means that data is available for us so we take up this data and pass it to a new goroutine
-			go ReceiveAndParseIncomingProtobufMessageToChannel(conn, protobufChannel)
-			//ReceiveAndParseIncomingProtobufMessageToChannel(conn, protobufChannel)
-			//protodata := ReceiveAndParseInfomingProtoufMessage(conn)
-			//utils.PrintMessage(fmt.Sprintf("Message on %s received:\n\n%s\n\n", localNode.String(), protodata.String()))
-			//handleReceivedProtobufMessage(protodata)
+		if localNode.UsedProtocol() == client.TCP {
+			//ReceiveMessage blocks until a message comes in
+			if conn, err := server.ReceiveMessage(); err == nil {
+				//If err is nil then that means that data is available for us so we take up this data and pass it to a new goroutine
+				go ReceiveAndParseIncomingProtobufMessageToChannel(conn, protobufChannel)
+				//ReceiveAndParseIncomingProtobufMessageToChannel(conn, protobufChannel)
+				//protodata := ReceiveAndParseInfomingProtoufMessage(conn)
+				//utils.PrintMessage(fmt.Sprintf("Message on %s received:\n\n%s\n\n", localNode.String(), protodata.String()))
+				//handleReceivedProtobufMessage(protodata)
+			}
+		} else if localNode.UsedProtocol() == client.UDP {
+			if conn, err := net.ListenUDP(localNode.UsedProtocol(), localNodeUdpAddress); err == nil {
+				go ReceiveAndParseIncomingProtobufMessageToChannel(conn, protobufChannel)
+			}
 		}
+
 	}
 }
 

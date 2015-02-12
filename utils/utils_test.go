@@ -3,6 +3,7 @@
 package utils_test
 
 import (
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -179,5 +180,46 @@ func TestIfFileIsReadableAndWritable(t *testing.T) {
 func TestGraphvizGeneration(t *testing.T) {
 	if err := utils.GenerateGraphvizFile("filename", 5, 6); err == nil {
 		t.Error("The error should not be nil because the function is not implemented yet.")
+	}
+}
+
+/*
+FILE_UTIL TESTS
+*/
+func TestNumberOfFirstLineFunctions(t *testing.T) {
+	directoryName, err := ioutil.TempDir("", "TestNumberOfFirstLineFunctions")
+	defer os.Remove(directoryName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filename := path.Join(directoryName, "NumberInFirstLine.txt")
+	file, err := os.Create(filename)
+	defer os.Remove(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.WriteString("00\n")
+	numbers, err := utils.ReadNumbersFromFirstLine(file, 2)
+	if err != nil {
+		t.Error(err)
+	}
+	for i := 0; i < len(numbers); i++ {
+		if numbers[i] != 0 {
+			t.Error("The initial values of the test file should be all 0 but read the following: ", numbers[i])
+		}
+	}
+	numbers, err = utils.IncreaseNumbersFromFirstLine(file, 2)
+	if err != nil {
+		t.Error(err)
+	}
+	if numbers[0] != 0 || numbers[1] != 1 {
+		t.Error("The value should now be 0 1 but is: ", numbers)
+	}
+	numbers, err = utils.DecreaseNumbersFromFirstLine(file, 2)
+	if err != nil {
+		t.Error(err)
+	}
+	if numbers[0] != 0 || numbers[1] != 0 {
+		t.Error("The value should now be 0 0 but is: ", numbers)
 	}
 }

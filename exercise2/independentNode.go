@@ -182,7 +182,7 @@ func handleReceivedControlMessage(message *protobuf.MessageTwo) {
 		//TODO: Implement ECHO algorithm for companies here.
 		if !messageToAllNeighborsSent {
 			for destinationId, value := range neighbors {
-				if destinationId != int(message.SourceID) {
+				if destinationId != int(*message.SourceID) {
 					SendProtobufControlMessage(localNode, value, localeId, utils.CONTROL_TYPE_INIT, message.GetMessageContent(), isCustomerInitialized())
 				}
 				//SendProtobufApplicationMessage(localNode, value, localeId, message.GetMessageContent(), isCustomerInitialized())

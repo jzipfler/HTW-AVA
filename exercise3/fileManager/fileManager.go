@@ -313,7 +313,7 @@ func sendFilemanagerResponse(destinationIp string, destinationPort, reaction int
 	if err != nil {
 		return err
 	}
-	conn, err := net.Dial("tcp", ipAddressAndPort)
+	conn, err := net.Dial(serverObject.UsedProtocol(), ipAddressAndPort)
 	if err != nil {
 		return err
 	}

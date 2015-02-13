@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/jzipfler/htw-ava/client"
 	"github.com/jzipfler/htw-ava/protobuf"
 	"github.com/jzipfler/htw-ava/server"
 	"github.com/jzipfler/htw-ava/utils"
@@ -48,10 +49,12 @@ var (
 	managedFile     *os.File
 	force           bool
 	fileInUse       bool
+	useTCP          bool
 	usedById        *idMutex
 	usedByIpAndPort string
 
-	serverObject server.NetworkServer
+	serverObject        server.NetworkServer
+	localNodeUdpAddress *net.UDPAddr
 
 	releaseServer server.NetworkServer
 )
@@ -70,6 +73,7 @@ func init() {
 	flag.StringVar(&ipAddress, "ipAddress", "127.0.0.1", "The ip address of the actual starting node.")
 	flag.IntVar(&port, "port", 15100, "The port of the actual starting node. (Portnumber must be even)")
 	flag.BoolVar(&force, "force", false, "If force is enabled, the programm removes a existing management file and creates a new one without asking.")
+	flag.BoolVar(&useTCP, "useTCP", false, "If this value is set to true, the application uses TCP to communicate.")
 }
 
 func main() {
@@ -149,14 +153,29 @@ func main() {
 	serverObject.SetClientName(managerName)
 	serverObject.SetIpAddressAsString(ipAddress)
 	serverObject.SetPort(port)
-	serverObject.SetUsedProtocol("tcp")
-
-	if err := server.StartServer(serverObject, nil); err != nil {
-		log.Fatalln("Could not start server. --> Exit.")
-		os.Exit(1)
+	if useTCP {
+		serverObject.SetUsedProtocol(client.TCP)
+	} else {
+		serverObject.SetUsedProtocol(client.UDP)
 	}
-	defer server.StopServer()
 
+	if serverObject.UsedProtocol() == client.TCP {
+		if err := server.StartServer(serverObject, nil); err != nil {
+			log.Fatalln("Could not start server. --> Exit.")
+		}
+		defer server.StopServer()
+	} else if serverObject.UsedProtocol() == client.UDP {
+		//Do nothing except to get the UDPAdress because the UDP call can gather packages directly
+		//without call the Listen and then the Accept function. (like in TCP)
+		var err error
+		localNodeUdpAddress, err = net.ResolveUDPAddr(serverObject.UsedProtocol(), serverObject.IpAndPortAsString())
+		if err != nil {
+			log.Fatalln("Error happened: Can not convert the local address information to a UdpAdressObject.")
+		}
+		utils.PrintMessage(fmt.Sprintf("Created UDP information for manager %s: %v", managerName, localNodeUdpAddress))
+	} else {
+		log.Fatalln("Error happened: The given protocol to start the server on the independend node, was neigther tcp nor udp.")
+	}
 
 	for {
 		receivedMessage := receiveAndParseFilemanagerRequest()
@@ -223,11 +242,21 @@ func askForToDeleteFile() bool {
 }
 
 func receiveAndParseFilemanagerRequest() *protobuf.FilemanagerRequest {
-	//ReceiveMessage blocks until a message comes in
-	conn, err := server.ReceiveMessage()
-	if err != nil {
-		utils.PrintMessage(err)
+	var conn net.Conn
+	var err error
+	if serverObject.UsedProtocol() == client.TCP {
+		//ReceiveMessage blocks until a message comes in
+		conn, err = server.ReceiveMessage()
+		if err != nil {
+			log.Fatalln(err)
+		}
+	} else {
+		conn, err = net.ListenUDP(serverObject.UsedProtocol(), localNodeUdpAddress)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
+
 	utils.PrintMessage("Incoming message")
 	//Close the connection when the function exits
 	defer conn.Close()

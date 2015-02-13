@@ -157,7 +157,6 @@ func main() {
 	}
 	defer server.StopServer()
 
-	go handleMessagesOnUnevenPort()
 
 	for {
 		receivedMessage := receiveAndParseFilemanagerRequest()
@@ -297,56 +296,4 @@ func sendFilemanagerResponse(destinationIp string, destinationPort, reaction int
 	utils.PrintMessage(fmt.Sprintf("Application message from %s to %s sent:\n\n%s\n\n", serverObject.String(), ipAddressAndPort, protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
 	return nil
-}
-
-func handleMessagesOnUnevenPort() {
-	releaseServer = server.New()
-	releaseServer.SetClientName(managerName)
-	releaseServer.SetIpAddressAsString(ipAddress)
-	releaseServer.SetPort(port + 1)
-	releaseServer.SetUsedProtocol("tcp")
-
-	releaseListener, err := net.Listen(releaseServer.UsedProtocol(), releaseServer.IpAndPortAsString())
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer releaseListener.Close()
-
-	for {
-		var reaction int
-		conn, err := releaseListener.Accept()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		utils.PrintMessage("Incoming message (Used to be a DEADLOCK-RENOUNCE message)")
-		defer conn.Close()
-		data := make([]byte, 4096)
-		n, err := conn.Read(data)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		request := new(protobuf.FilemanagerRequest)
-		err = proto.Unmarshal(data[0:n], request)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		utils.PrintMessage(fmt.Sprintf("Request decoded.\n\n%s\n\n", request))
-		if request.GetAccessOperation() == protobuf.FilemanagerRequest_GET {
-			sendFilemanagerResponse(request.GetSourceIP(), int(request.GetSourcePort()-1), RESOURCE_NOT_RELEASED)
-		}
-		//Check if the array of blocking processes contains the id of this process
-		utils.PrintMessage("Message is a RELEASE or RENOUNCE message, check if this process id blocks the file.")
-		if fileInUse && usedById.Id() == request.GetSourceID() {
-			utils.PrintMessage("YES, this process id blocks the file, RELEASE it!")
-			fileInUse = false
-			usedById.SetId(0)
-			usedByIpAndPort = ""
-			reaction = RESOURCE_RELEASED
-			utils.PrintMessage("File successfully released/renounced.")
-		} else {
-			utils.PrintMessage("NO, this process id does not block the file, DO NOT RELEASE it!")
-			reaction = RESOURCE_NOT_RELEASED
-		}
-		sendFilemanagerResponse(request.GetSourceIP(), int(request.GetSourcePort()-1), reaction)
-	}
 }

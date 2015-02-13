@@ -256,14 +256,13 @@ func receiveAndParseFilemanagerRequest() *protobuf.FilemanagerRequest {
 			log.Fatalln(err)
 		}
 	}
-
-	utils.PrintMessage("Incoming message")
 	//Close the connection when the function exits
 	defer conn.Close()
 	//Create a data buffer of type byte slice with capacity of 4096
 	data := make([]byte, 4096)
 	//Read the data waiting on the connection and put it in the data buffer
 	n, err := conn.Read(data)
+	utils.PrintMessage("Incoming message")
 	if err != nil {
 		log.Fatal("Error happened: " + err.Error())
 	}

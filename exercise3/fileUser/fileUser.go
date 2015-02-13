@@ -239,10 +239,11 @@ func receiveFilemanagerResponses() *protobuf.FilemanagerResponse {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	utils.PrintMessage("Incoming message")
+
 	defer conn.Close()
 	data := make([]byte, 4096)
 	n, err := conn.Read(data)
+	utils.PrintMessage("Incoming message")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -521,10 +522,11 @@ func receiveGoldmanToken(tokenListener net.Listener) *protobuf.GoldmanToken {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	utils.PrintMessage("Incoming message")
+
 	defer conn.Close()
 	data := make([]byte, 4096)
 	n, err := conn.Read(data)
+	utils.PrintMessage("Incoming message")
 	if err != nil {
 		log.Fatalln(err)
 	}

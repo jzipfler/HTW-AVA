@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/jzipfler/htw-ava/client"
 	"github.com/jzipfler/htw-ava/protobuf"
 	"github.com/jzipfler/htw-ava/server"
 	"github.com/jzipfler/htw-ava/utils"
@@ -28,12 +29,14 @@ var (
 	managedFile *os.File
 	force       bool
 	slowRunning bool
+	useTCP      bool
 	managerA    string
 	managerB    string
 
-	serverObject   server.NetworkServer
-	managerAObject server.NetworkServer
-	managerBObject server.NetworkServer
+	serverObject        server.NetworkServer
+	managerAObject      server.NetworkServer
+	managerBObject      server.NetworkServer
+	localNodeUdpAddress *net.UDPAddr
 
 	tokenServer        server.NetworkServer
 	nonBlockingManager server.NetworkServer
@@ -66,6 +69,7 @@ func init() {
 	flag.StringVar(&managerB, "managerB", "127.0.0.1:15100", "The ip address and port of manager B. (Portnumber must be even)")
 	flag.IntVar(&id, "id", 1337, "With this option, a optional id can be specified. If not, the id becomes the process id of this program.")
 	flag.BoolVar(&slowRunning, "slow", false, "If slow is set to true, the fileUser will restart each request after a time interval from [0,5) seconds randomly, otherwise between 1ms and 1s.")
+	flag.BoolVar(&useTCP, "useTCP", false, "If this value is set to true, the application uses TCP to communicate.")
 }
 
 func main() {
@@ -145,14 +149,31 @@ func main() {
 	serverObject.SetClientName(string(processId))
 	serverObject.SetIpAddressAsString(ipAddress)
 	serverObject.SetPort(port)
-	serverObject.SetUsedProtocol("tcp")
+	if useTCP {
+		serverObject.SetUsedProtocol(client.TCP)
+	} else {
+		serverObject.SetUsedProtocol(client.UDP)
+	}
 
 	utils.PrintMessage(fmt.Sprintf("Server with the following settings created: %s", serverObject))
 
-	if err := server.StartServer(serverObject, nil); err != nil {
-		log.Fatalln("Could not start server. --> Exit.")
+	if serverObject.UsedProtocol() == client.TCP {
+		if err := server.StartServer(serverObject, nil); err != nil {
+			log.Fatalln("Could not start server. --> Exit.")
+		}
+		defer server.StopServer()
+	} else if serverObject.UsedProtocol() == client.UDP {
+		//Do nothing except to get the UDPAdress because the UDP call can gather packages directly
+		//without call the Listen and then the Accept function. (like in TCP)
+		var err error
+		localNodeUdpAddress, err = net.ResolveUDPAddr(serverObject.UsedProtocol(), serverObject.IpAndPortAsString())
+		if err != nil {
+			log.Fatalln("Error happened: Can not convert the local address information to a UdpAdressObject.")
+		}
+		utils.PrintMessage(fmt.Sprintf("Created UDP information for node %d: %v", processId, localNodeUdpAddress))
+	} else {
+		log.Fatalln("Error happened: The given protocol to start the server on the independend node, was neigther tcp nor udp.")
 	}
-	defer server.StopServer()
 
 	var work func()
 
@@ -190,7 +211,11 @@ func parseIpColonPortToNetworkServer(managerInformation string) (server.NetworkS
 	}
 	serverObject.SetIpAddressAsString(ipAndPortArray[0])
 	serverObject.SetPort(port)
-	serverObject.SetUsedProtocol("tcp")
+	if useTCP {
+		serverObject.SetUsedProtocol(client.TCP)
+	} else {
+		serverObject.SetUsedProtocol(client.UDP)
+	}
 	return serverObject, nil
 }
 
@@ -220,24 +245,36 @@ func sendFilemanagerRequest(destinationFileManager server.NetworkServer, reactio
 	if err != nil {
 		return err
 	}
-	conn, err := net.Dial("tcp", destinationFileManager.IpAndPortAsString())
+	conn, err := net.Dial(serverObject.UsedProtocol(), destinationFileManager.IpAndPortAsString())
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
+
 	n, err := conn.Write(data)
 	if err != nil {
 		return err
 	}
 	utils.PrintMessage(fmt.Sprintf("FilemanagerRequest message from %s to %s sent:\n\n%s\n", serverObject.String(), destinationFileManager.IpAndPortAsString(), protobufMessage.String()))
 	utils.PrintMessage("Sent " + strconv.Itoa(n) + " bytes")
+
 	return nil
 }
 
 func receiveFilemanagerResponses() *protobuf.FilemanagerResponse {
-	conn, err := server.ReceiveMessage()
-	if err != nil {
-		log.Fatalln(err)
+	var conn net.Conn
+	var err error
+	if serverObject.UsedProtocol() == client.TCP {
+		//ReceiveMessage blocks until a message comes in
+		conn, err = server.ReceiveMessage()
+		if err != nil {
+			log.Fatalln(err)
+		}
+	} else {
+		conn, err = net.ListenUDP(serverObject.UsedProtocol(), localNodeUdpAddress)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	defer conn.Close()
@@ -320,6 +357,7 @@ func workerFunctionForUnevenProcesses() {
 
 func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 	for {
+		utils.PrintMessage("Begin waitForAccessFromManagerA()")
 		if err := sendFilemanagerRequest(managerAObject, GET); err != nil {
 			return nil, err
 		}
@@ -382,6 +420,7 @@ func waitForAccessFromManagerA() (*protobuf.FilemanagerResponse, error) {
 
 func waitForAccessFromManagerB() (*protobuf.FilemanagerResponse, error) {
 	for {
+		utils.PrintMessage("Begin waitForAccessFromManagerB()")
 		if err := sendFilemanagerRequest(managerBObject, GET); err != nil {
 			return nil, err
 		}
@@ -462,7 +501,13 @@ func releaseResourceFromManager(managerToRecover int) error {
 		}
 		switch receivedMessageFromManager.GetRequestReaction() {
 		case protobuf.FilemanagerResponse_RESOURCE_RELEASED:
-			utils.PrintMessage("Resource from manager A successfully released.")
+			if managerToRecover == MANAGER_A {
+				utils.PrintMessage("Resource from manager A successfully released.")
+			} else if managerToRecover == MANAGER_B {
+				utils.PrintMessage("Resource from manager B successfully released.")
+			} else {
+				log.Fatalln("Got an unknown state at releaseResourceFromManager().")
+			}
 			return nil
 		case protobuf.FilemanagerResponse_ACCESS_GRANTED:
 			fallthrough
@@ -503,7 +548,7 @@ func sendGoldmanToken(destinationNode server.NetworkServer, blockingProcesses []
 	if err != nil {
 		return err
 	}
-	conn, err := net.Dial("tcp", destinationNode.IpAndPortAsString())
+	conn, err := net.Dial(destinationNode.UsedProtocol(), destinationNode.IpAndPortAsString())
 	if err != nil {
 		return err
 	}
@@ -518,9 +563,20 @@ func sendGoldmanToken(destinationNode server.NetworkServer, blockingProcesses []
 }
 
 func receiveGoldmanToken(tokenListener net.Listener) *protobuf.GoldmanToken {
-	conn, err := tokenListener.Accept()
-	if err != nil {
-		log.Fatalln(err)
+	var conn net.Conn
+
+	if tokenListener != nil && useTCP {
+		var err error
+		conn, err = tokenListener.Accept()
+		if err != nil {
+			log.Fatalln(err)
+		}
+	} else {
+		tokenServerUDPAddress, err := net.ResolveUDPAddr(tokenServer.UsedProtocol(), tokenServer.IpAndPortAsString())
+		conn, err = net.ListenUDP(tokenServer.UsedProtocol(), tokenServerUDPAddress)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	defer conn.Close()
@@ -540,17 +596,24 @@ func receiveGoldmanToken(tokenListener net.Listener) *protobuf.GoldmanToken {
 }
 
 func handleTokenMessages() {
+	var tokenListener net.Listener
+	var err error
+
 	tokenServer = server.New()
 	tokenServer.SetClientName(string(processId))
 	tokenServer.SetIpAddressAsString(ipAddress)
 	tokenServer.SetPort(port + 1)
-	tokenServer.SetUsedProtocol("tcp")
-
-	tokenListener, err := net.Listen(tokenServer.UsedProtocol(), tokenServer.IpAndPortAsString())
-	if err != nil {
-		log.Fatalln(err)
+	if useTCP {
+		tokenServer.SetUsedProtocol(client.TCP)
+		tokenListener, err = net.Listen(tokenServer.UsedProtocol(), tokenServer.IpAndPortAsString())
+		if err != nil {
+			log.Fatalln(err)
+		}
+		defer tokenListener.Close()
+	} else {
+		tokenServer.SetUsedProtocol(client.UDP)
+		tokenListener = nil
 	}
-	defer tokenListener.Close()
 
 	for {
 

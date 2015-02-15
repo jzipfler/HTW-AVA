@@ -10,10 +10,14 @@ It is generated from these files:
 
 It has these top-level messages:
 	Nachricht
+	MessageTwo
+	FilemanagerRequest
+	FilemanagerResponse
+	GoldmanToken
 */
 package protobuf
 
-import proto "code.google.com/p/goprotobuf/proto"
+import proto "github.com/golang/protobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -89,6 +93,184 @@ func (x *Nachricht_KontrollTyp) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type MessageTwo_MessageType int32
+
+const (
+	MessageTwo_CONTROLMESSAGE     MessageTwo_MessageType = 0
+	MessageTwo_APPLICATIONMESSAGE MessageTwo_MessageType = 1
+)
+
+var MessageTwo_MessageType_name = map[int32]string{
+	0: "CONTROLMESSAGE",
+	1: "APPLICATIONMESSAGE",
+}
+var MessageTwo_MessageType_value = map[string]int32{
+	"CONTROLMESSAGE":     0,
+	"APPLICATIONMESSAGE": 1,
+}
+
+func (x MessageTwo_MessageType) Enum() *MessageTwo_MessageType {
+	p := new(MessageTwo_MessageType)
+	*p = x
+	return p
+}
+func (x MessageTwo_MessageType) String() string {
+	return proto.EnumName(MessageTwo_MessageType_name, int32(x))
+}
+func (x *MessageTwo_MessageType) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(MessageTwo_MessageType_value, data, "MessageTwo_MessageType")
+	if err != nil {
+		return err
+	}
+	*x = MessageTwo_MessageType(value)
+	return nil
+}
+
+type MessageTwo_ControlType int32
+
+const (
+	// Use this option if you want to assign multiple definitions for the same value
+	// For example: "INITIALIZE = 0;" && "START = 0;".
+	// option allow_alias = true;
+	MessageTwo_INITIALIZE MessageTwo_ControlType = 0
+	MessageTwo_QUIT       MessageTwo_ControlType = 1
+)
+
+var MessageTwo_ControlType_name = map[int32]string{
+	0: "INITIALIZE",
+	1: "QUIT",
+}
+var MessageTwo_ControlType_value = map[string]int32{
+	"INITIALIZE": 0,
+	"QUIT":       1,
+}
+
+func (x MessageTwo_ControlType) Enum() *MessageTwo_ControlType {
+	p := new(MessageTwo_ControlType)
+	*p = x
+	return p
+}
+func (x MessageTwo_ControlType) String() string {
+	return proto.EnumName(MessageTwo_ControlType_name, int32(x))
+}
+func (x *MessageTwo_ControlType) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(MessageTwo_ControlType_value, data, "MessageTwo_ControlType")
+	if err != nil {
+		return err
+	}
+	*x = MessageTwo_ControlType(value)
+	return nil
+}
+
+type MessageTwo_NodeType int32
+
+const (
+	MessageTwo_COMPANY  MessageTwo_NodeType = 0
+	MessageTwo_CUSTOMER MessageTwo_NodeType = 1
+)
+
+var MessageTwo_NodeType_name = map[int32]string{
+	0: "COMPANY",
+	1: "CUSTOMER",
+}
+var MessageTwo_NodeType_value = map[string]int32{
+	"COMPANY":  0,
+	"CUSTOMER": 1,
+}
+
+func (x MessageTwo_NodeType) Enum() *MessageTwo_NodeType {
+	p := new(MessageTwo_NodeType)
+	*p = x
+	return p
+}
+func (x MessageTwo_NodeType) String() string {
+	return proto.EnumName(MessageTwo_NodeType_name, int32(x))
+}
+func (x *MessageTwo_NodeType) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(MessageTwo_NodeType_value, data, "MessageTwo_NodeType")
+	if err != nil {
+		return err
+	}
+	*x = MessageTwo_NodeType(value)
+	return nil
+}
+
+type FilemanagerRequest_AccessOperation int32
+
+const (
+	FilemanagerRequest_GET      FilemanagerRequest_AccessOperation = 0
+	FilemanagerRequest_RELEASE  FilemanagerRequest_AccessOperation = 1
+	FilemanagerRequest_RENOUNCE FilemanagerRequest_AccessOperation = 2
+)
+
+var FilemanagerRequest_AccessOperation_name = map[int32]string{
+	0: "GET",
+	1: "RELEASE",
+	2: "RENOUNCE",
+}
+var FilemanagerRequest_AccessOperation_value = map[string]int32{
+	"GET":      0,
+	"RELEASE":  1,
+	"RENOUNCE": 2,
+}
+
+func (x FilemanagerRequest_AccessOperation) Enum() *FilemanagerRequest_AccessOperation {
+	p := new(FilemanagerRequest_AccessOperation)
+	*p = x
+	return p
+}
+func (x FilemanagerRequest_AccessOperation) String() string {
+	return proto.EnumName(FilemanagerRequest_AccessOperation_name, int32(x))
+}
+func (x *FilemanagerRequest_AccessOperation) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(FilemanagerRequest_AccessOperation_value, data, "FilemanagerRequest_AccessOperation")
+	if err != nil {
+		return err
+	}
+	*x = FilemanagerRequest_AccessOperation(value)
+	return nil
+}
+
+type FilemanagerResponse_RequestReaction int32
+
+const (
+	FilemanagerResponse_ACCESS_GRANTED        FilemanagerResponse_RequestReaction = 0
+	FilemanagerResponse_ACCESS_DENIED         FilemanagerResponse_RequestReaction = 1
+	FilemanagerResponse_RESOURCE_RELEASED     FilemanagerResponse_RequestReaction = 2
+	FilemanagerResponse_RESOURCE_NOT_RELEASED FilemanagerResponse_RequestReaction = 3
+)
+
+var FilemanagerResponse_RequestReaction_name = map[int32]string{
+	0: "ACCESS_GRANTED",
+	1: "ACCESS_DENIED",
+	2: "RESOURCE_RELEASED",
+	3: "RESOURCE_NOT_RELEASED",
+}
+var FilemanagerResponse_RequestReaction_value = map[string]int32{
+	"ACCESS_GRANTED":        0,
+	"ACCESS_DENIED":         1,
+	"RESOURCE_RELEASED":     2,
+	"RESOURCE_NOT_RELEASED": 3,
+}
+
+func (x FilemanagerResponse_RequestReaction) Enum() *FilemanagerResponse_RequestReaction {
+	p := new(FilemanagerResponse_RequestReaction)
+	*p = x
+	return p
+}
+func (x FilemanagerResponse_RequestReaction) String() string {
+	return proto.EnumName(FilemanagerResponse_RequestReaction_name, int32(x))
+}
+func (x *FilemanagerResponse_RequestReaction) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(FilemanagerResponse_RequestReaction_value, data, "FilemanagerResponse_RequestReaction")
+	if err != nil {
+		return err
+	}
+	*x = FilemanagerResponse_RequestReaction(value)
+	return nil
+}
+
+// Nachrichtendefinition fuer Aufgabe 1.
 type Nachricht struct {
 	SourceIP          *string                   `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
 	SourcePort        *int32                    `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
@@ -156,7 +338,217 @@ func (m *Nachricht) GetZeitStempel() string {
 	return ""
 }
 
+// Message definition for exercise 2.
+type MessageTwo struct {
+	SourceIP         *string                 `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort       *int32                  `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	SourceID         *int32                  `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
+	MessageType      *MessageTwo_MessageType `protobuf:"varint,4,req,name=messageType,enum=protobuf.MessageTwo_MessageType,def=1" json:"messageType,omitempty"`
+	ControlType      *MessageTwo_ControlType `protobuf:"varint,5,opt,name=controlType,enum=protobuf.MessageTwo_ControlType,def=0" json:"controlType,omitempty"`
+	NodeType         *MessageTwo_NodeType    `protobuf:"varint,6,req,name=nodeType,enum=protobuf.MessageTwo_NodeType,def=1" json:"nodeType,omitempty"`
+	MessageContent   *string                 `protobuf:"bytes,7,req,name=messageContent" json:"messageContent,omitempty"`
+	Timestamp        *string                 `protobuf:"bytes,8,opt,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte                  `json:"-"`
+}
+
+func (m *MessageTwo) Reset()         { *m = MessageTwo{} }
+func (m *MessageTwo) String() string { return proto.CompactTextString(m) }
+func (*MessageTwo) ProtoMessage()    {}
+
+const Default_MessageTwo_MessageType MessageTwo_MessageType = MessageTwo_APPLICATIONMESSAGE
+const Default_MessageTwo_ControlType MessageTwo_ControlType = MessageTwo_INITIALIZE
+const Default_MessageTwo_NodeType MessageTwo_NodeType = MessageTwo_CUSTOMER
+
+func (m *MessageTwo) GetSourceIP() string {
+	if m != nil && m.SourceIP != nil {
+		return *m.SourceIP
+	}
+	return ""
+}
+
+func (m *MessageTwo) GetSourcePort() int32 {
+	if m != nil && m.SourcePort != nil {
+		return *m.SourcePort
+	}
+	return 0
+}
+
+func (m *MessageTwo) GetSourceID() int32 {
+	if m != nil && m.SourceID != nil {
+		return *m.SourceID
+	}
+	return 0
+}
+
+func (m *MessageTwo) GetMessageType() MessageTwo_MessageType {
+	if m != nil && m.MessageType != nil {
+		return *m.MessageType
+	}
+	return Default_MessageTwo_MessageType
+}
+
+func (m *MessageTwo) GetControlType() MessageTwo_ControlType {
+	if m != nil && m.ControlType != nil {
+		return *m.ControlType
+	}
+	return Default_MessageTwo_ControlType
+}
+
+func (m *MessageTwo) GetNodeType() MessageTwo_NodeType {
+	if m != nil && m.NodeType != nil {
+		return *m.NodeType
+	}
+	return Default_MessageTwo_NodeType
+}
+
+func (m *MessageTwo) GetMessageContent() string {
+	if m != nil && m.MessageContent != nil {
+		return *m.MessageContent
+	}
+	return ""
+}
+
+func (m *MessageTwo) GetTimestamp() string {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return ""
+}
+
+type FilemanagerRequest struct {
+	SourceIP         *string                             `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort       *int32                              `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	SourceID         *int32                              `protobuf:"varint,3,req,name=sourceID" json:"sourceID,omitempty"`
+	AccessOperation  *FilemanagerRequest_AccessOperation `protobuf:"varint,4,req,name=accessOperation,enum=protobuf.FilemanagerRequest_AccessOperation" json:"accessOperation,omitempty"`
+	XXX_unrecognized []byte                              `json:"-"`
+}
+
+func (m *FilemanagerRequest) Reset()         { *m = FilemanagerRequest{} }
+func (m *FilemanagerRequest) String() string { return proto.CompactTextString(m) }
+func (*FilemanagerRequest) ProtoMessage()    {}
+
+func (m *FilemanagerRequest) GetSourceIP() string {
+	if m != nil && m.SourceIP != nil {
+		return *m.SourceIP
+	}
+	return ""
+}
+
+func (m *FilemanagerRequest) GetSourcePort() int32 {
+	if m != nil && m.SourcePort != nil {
+		return *m.SourcePort
+	}
+	return 0
+}
+
+func (m *FilemanagerRequest) GetSourceID() int32 {
+	if m != nil && m.SourceID != nil {
+		return *m.SourceID
+	}
+	return 0
+}
+
+func (m *FilemanagerRequest) GetAccessOperation() FilemanagerRequest_AccessOperation {
+	if m != nil && m.AccessOperation != nil {
+		return *m.AccessOperation
+	}
+	return FilemanagerRequest_GET
+}
+
+type FilemanagerResponse struct {
+	SourceIP                         *string                              `protobuf:"bytes,1,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort                       *int32                               `protobuf:"varint,2,req,name=sourcePort" json:"sourcePort,omitempty"`
+	RequestReaction                  *FilemanagerResponse_RequestReaction `protobuf:"varint,3,req,name=requestReaction,enum=protobuf.FilemanagerResponse_RequestReaction" json:"requestReaction,omitempty"`
+	Filename                         *string                              `protobuf:"bytes,4,opt,name=filename" json:"filename,omitempty"`
+	ProcessIpAndPortThatUsesResource *string                              `protobuf:"bytes,5,opt,name=processIpAndPortThatUsesResource" json:"processIpAndPortThatUsesResource,omitempty"`
+	ProcessIdThatUsesResource        *int32                               `protobuf:"varint,6,opt,name=processIdThatUsesResource" json:"processIdThatUsesResource,omitempty"`
+	XXX_unrecognized                 []byte                               `json:"-"`
+}
+
+func (m *FilemanagerResponse) Reset()         { *m = FilemanagerResponse{} }
+func (m *FilemanagerResponse) String() string { return proto.CompactTextString(m) }
+func (*FilemanagerResponse) ProtoMessage()    {}
+
+func (m *FilemanagerResponse) GetSourceIP() string {
+	if m != nil && m.SourceIP != nil {
+		return *m.SourceIP
+	}
+	return ""
+}
+
+func (m *FilemanagerResponse) GetSourcePort() int32 {
+	if m != nil && m.SourcePort != nil {
+		return *m.SourcePort
+	}
+	return 0
+}
+
+func (m *FilemanagerResponse) GetRequestReaction() FilemanagerResponse_RequestReaction {
+	if m != nil && m.RequestReaction != nil {
+		return *m.RequestReaction
+	}
+	return FilemanagerResponse_ACCESS_GRANTED
+}
+
+func (m *FilemanagerResponse) GetFilename() string {
+	if m != nil && m.Filename != nil {
+		return *m.Filename
+	}
+	return ""
+}
+
+func (m *FilemanagerResponse) GetProcessIpAndPortThatUsesResource() string {
+	if m != nil && m.ProcessIpAndPortThatUsesResource != nil {
+		return *m.ProcessIpAndPortThatUsesResource
+	}
+	return ""
+}
+
+func (m *FilemanagerResponse) GetProcessIdThatUsesResource() int32 {
+	if m != nil && m.ProcessIdThatUsesResource != nil {
+		return *m.ProcessIdThatUsesResource
+	}
+	return 0
+}
+
+type GoldmanToken struct {
+	BlockingProcesses []int32 `protobuf:"varint,1,rep,name=blockingProcesses" json:"blockingProcesses,omitempty"`
+	SourceIP          *string `protobuf:"bytes,2,req,name=sourceIP" json:"sourceIP,omitempty"`
+	SourcePort        *int32  `protobuf:"varint,3,req,name=sourcePort" json:"sourcePort,omitempty"`
+	XXX_unrecognized  []byte  `json:"-"`
+}
+
+func (m *GoldmanToken) Reset()         { *m = GoldmanToken{} }
+func (m *GoldmanToken) String() string { return proto.CompactTextString(m) }
+func (*GoldmanToken) ProtoMessage()    {}
+
+func (m *GoldmanToken) GetBlockingProcesses() []int32 {
+	if m != nil {
+		return m.BlockingProcesses
+	}
+	return nil
+}
+
+func (m *GoldmanToken) GetSourceIP() string {
+	if m != nil && m.SourceIP != nil {
+		return *m.SourceIP
+	}
+	return ""
+}
+
+func (m *GoldmanToken) GetSourcePort() int32 {
+	if m != nil && m.SourcePort != nil {
+		return *m.SourcePort
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterEnum("protobuf.Nachricht_NachrichtenTyp", Nachricht_NachrichtenTyp_name, Nachricht_NachrichtenTyp_value)
 	proto.RegisterEnum("protobuf.Nachricht_KontrollTyp", Nachricht_KontrollTyp_name, Nachricht_KontrollTyp_value)
+	proto.RegisterEnum("protobuf.MessageTwo_MessageType", MessageTwo_MessageType_name, MessageTwo_MessageType_value)
+	proto.RegisterEnum("protobuf.MessageTwo_ControlType", MessageTwo_ControlType_name, MessageTwo_ControlType_value)
+	proto.RegisterEnum("protobuf.MessageTwo_NodeType", MessageTwo_NodeType_name, MessageTwo_NodeType_value)
+	proto.RegisterEnum("protobuf.FilemanagerRequest_AccessOperation", FilemanagerRequest_AccessOperation_name, FilemanagerRequest_AccessOperation_value)
+	proto.RegisterEnum("protobuf.FilemanagerResponse_RequestReaction", FilemanagerResponse_RequestReaction_name, FilemanagerResponse_RequestReaction_value)
 }

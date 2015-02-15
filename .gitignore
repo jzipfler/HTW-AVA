@@ -1,4 +1,28 @@
 main/main
+avaStarter/avaStarter
+avaStarter2/avaStarter2
+
+exercise1/example/avaStarter
+exercise1/example/generateGraphviz
+exercise1/example/generatedGraphviz.txt
+exercise1/example/generatedGraphviz.jpg
+exercise1/example/nodeOutput*.txt
+
+exercise2/example/avaStarter2
+exercise2/example/generateGraphviz
+exercise2/example/generatedGraphviz.txt
+exercise2/example/generatedGraphviz.jpg
+exercise2/example/nodeOutput*.txt
+
+exercise3/fileManager/fileManager
+exercise3/fileManager/*.txt
+
+exercise3/fileUser/fileUser
+exercise3/fileUser/*.txt
+
+exercise3/examples/fileManager
+exercise3/examples/fileUser
+
 generateGraphviz/generateGraphviz
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)

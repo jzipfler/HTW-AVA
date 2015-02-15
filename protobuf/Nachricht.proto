@@ -1,5 +1,6 @@
 package protobuf;
 
+// Nachrichtendefinition fuer Aufgabe 1.
 message Nachricht {
 
 	enum NachrichtenTyp {
@@ -25,4 +26,73 @@ message Nachricht {
 	optional KontrollTyp kontrollTyp = 5 [default = INITIALISIEREN];
 	required string nachrichtenInhalt = 6;
 	optional string zeitStempel = 7;
+}
+
+// Message definition for exercise 2.
+message MessageTwo {
+
+	enum MessageType {
+		CONTROLMESSAGE = 0;
+		APPLICATIONMESSAGE = 1;
+	}
+	enum ControlType {
+		//Use this option if you want to assign multiple definitions for the same value
+		//For example: "INITIALIZE = 0;" && "START = 0;".
+		//option allow_alias = true;
+		INITIALIZE = 0;
+		QUIT = 1;
+	}
+	enum NodeType {
+		COMPANY = 0;
+		CUSTOMER = 1;
+	}
+
+	required string sourceIP = 1;
+	required int32 sourcePort = 2;
+	required int32 sourceID = 3;
+	required MessageType messageType = 4 [default = APPLICATIONMESSAGE];
+	optional ControlType controlType = 5 [default = INITIALIZE];
+	required NodeType nodeType = 6 [default = CUSTOMER];
+	required string messageContent = 7;
+	optional string timestamp = 8;
+	
+}
+
+//Message definitions for exercise 3
+
+message FilemanagerRequest {
+
+	enum AccessOperation {
+		GET = 0;
+		RELEASE = 1;
+		RENOUNCE = 2;
+	}
+
+	required string sourceIP = 1;
+	required int32 sourcePort = 2;
+  required int32 sourceID = 3;
+	required AccessOperation accessOperation = 4;
+}
+
+message FilemanagerResponse {
+	
+	enum RequestReaction {
+		ACCESS_GRANTED = 0;
+    ACCESS_DENIED = 1;
+    RESOURCE_RELEASED = 2;
+    RESOURCE_NOT_RELEASED = 3;
+  	}
+
+	required string sourceIP = 1;
+	required int32 sourcePort = 2;
+  	required RequestReaction requestReaction = 3;
+    optional string filename = 4;
+	optional string processIpAndPortThatUsesResource = 5; //Uses the format "IPADDRESS:PORT"
+	optional int32 processIdThatUsesResource = 6;
+}
+
+message GoldmanToken {
+	repeated int32 blockingProcesses = 1;
+	required string sourceIP = 2;
+	required int32 sourcePort = 3;
 }

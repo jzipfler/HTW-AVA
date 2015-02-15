@@ -107,7 +107,7 @@ func TestNodeListFilehandler(t *testing.T) {
 }
 
 func TestGraphvizFilehandler(t *testing.T) {
-	if _, err := filehandler.CollectNeighborsFromGraphvizFile("filename"); err == nil {
-		t.Error("The error should not be nil because the function is not implemented yet.")
+	if _, err := filehandler.CollectNeighborsFromGraphvizFile("filename", 1, nil); err == nil {
+		t.Error("The error should not be nil because file does not exists, the id is < 1 and the allNodes is nil.")
 	}
 }

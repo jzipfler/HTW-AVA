@@ -1,0 +1,59 @@
+== Exercise 2
+
+WARNING: Diese Aufgabe ist so gut wie kaum implementiert.
+Es wurde alles vorbereitet, jedoch nicht zu Ende geführt.
+
+=== Erläuterung der Idee
+
+Die Idee bei dieser Aufgabe war es, sich den Ablauf zu zeichnen
+und anschließend einfach herunter zu programmieren.
+
+image::Exercise2_Incoming-Init.png[caption="Bild 1: ", title="Eingehende Initialisierung"]
+
+In Bild 1 ist zu sehen wie ein Knoten reagieren soll wenn eine
+Init Nachricht eintrifft.
+Dabei wird geprüft ob es sich um einen Kunden handelt.
+Ist dies der Fall, so werden Freunde festgelegt und die Grenzwerte
+für das kaufen und weitererzählen von Produkten festgelegt.
+
+Sollte es sich um ein Unternehmen handeln, so wird zuerst das
+Budget und die Nachbarn festelegt.
+Sobald dies geschehen ist kann mit der Werbung begonnen werden.
+Dies wird solange wiederholt, solange noch genügend Geld vorhanden ist.
+
+image::Exercise2_Incoming-App.png[caption="Bild 2: ", title="Eingehende Anwendungsnachricht"]
+
+Bild 2 zeigt das Szenario einer einkommenden Anwendungsnachricht.
+Sollte es sich um einen Unternehmen handeln, so wird geprüft
+ob etwas gekauft wurde.
+Falls dies der Fall ist, wird das Budet erhöt und der Knoten als
+Kunde hinzugefügt, andernfalls wird der Vorgang beendet.
+
+Der Kunde muss hingegen prüfen ob es sich um eine Info eines Freundes
+oder Unternehmens handelt.
+Darauf werden die jeweiligen Schwellwerte überprüft und im Falle eines
+nicht erreichten Wertes nachgeschaut, ob das Produkt bereits gekauft wurde.
+Falls der Kunde das Produkt noch nicht besitzt wird es gekauft und
+den Nachbarn mitgeteilt.
+
+=== Nachrichtenformat
+Das Nachrichtenformat ist identisch zu dem aus Aufgabe 1 mit dem
+einzigen Unterschied, dass ein Feld vom Typ _KnotenTyp_ eingefügt wurde.
+Damit soll die Unterscheidung Kunde <-> Unternehmen durchgeführt werden.
+
+=== Erläuterung der Softwarestruktur
+Die Struktur dieser Applikation ist ähnlich zu der aus Aufgabe 1.
+Es wurden jeweils nur noch zwei weitere Typen hinzugefügt um einen
+Kunden und ein Unternehmen representieren und verwalten zu können.
+
+=== Hinweise auf Implementierungsbesonderheiten
+Hier sind nur die Tests zu nennen, da sonst nichts besonderes
+realisiert wurde.
+
+=== typische Beispielabläufe
+Wenn es denn laufen würde, wäre das Prinzip analog zu Aufgabe 1
+anzuwenden. 
+
+=== Fazit (gewonnene Erkenntnisse)
+Das jährliche "In den Weihnachtsferien werde ich schon genügend
+Zeit haben." erneut gekommt wiederlegt.

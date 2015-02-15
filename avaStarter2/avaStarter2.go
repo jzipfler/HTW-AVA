@@ -3,31 +3,31 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/jzipfler/htw-ava/exercise1"
-	"github.com/jzipfler/htw-ava/filehandler"
-	"github.com/jzipfler/htw-ava/server"
-	"github.com/jzipfler/htw-ava/utils"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jzipfler/htw-ava/exercise1"
+	"github.com/jzipfler/htw-ava/exercise2"
+	"github.com/jzipfler/htw-ava/filehandler"
+	"github.com/jzipfler/htw-ava/server"
+	"github.com/jzipfler/htw-ava/utils"
 )
 
 var (
-	loggingPrefix             string
-	logFile                   string
-	id                        int
-	ipAddress                 string
-	port                      int
-	messageContent            string
-	nodeListFile              string
-	graphvizFile              string
-	isController              bool
-	allNodes                  map[int]server.NetworkServer
-	neighbors                 map[int]server.NetworkServer
-	messageToAllNeighborsSend bool
-
-	//targetId      int //TODO: TMP for client / server testing
+	loggingPrefix  string
+	logFile        string
+	id             int
+	ipAddress      string
+	port           int
+	messageContent string
+	nodeListFile   string
+	graphvizFile   string
+	isController   bool
+	isCustomer     bool
+	allNodes       map[int]server.NetworkServer
+	neighbors      map[int]server.NetworkServer
 )
 
 // The ini function is called before the main function is started.
@@ -39,15 +39,11 @@ func init() {
 	flag.IntVar(&id, "id", 1, "The if of the actual starting node.")
 	flag.StringVar(&ipAddress, "ipAddress", "127.0.0.1", "The ip address of the actual starting node.")
 	flag.IntVar(&port, "port", 15100, "The port of the actual starting node.")
-	// Defining two flags that do the same but have different names.
-	flag.StringVar(&messageContent, "messageContent", "This is a message", "The message content is the string that is sent to the other nodes.")
-	flag.StringVar(&messageContent, "rumor", "The earth is a disc.", "The rumor that is sent to the other nodes.")
+	flag.StringVar(&messageContent, "messageContent", "The earth is a disc.", "The message content is the string that is sent to the other nodes.")
 	flag.StringVar(&loggingPrefix, "loggingPrefix", "LOGGING --> ", "This can be used to define which prefix the logger should use to print his messages.")
 	flag.StringVar(&logFile, "logFile", "path/to/logfile.txt", "This parameter can be used to print the logging output to the given file.")
 	flag.BoolVar(&isController, "isController", false, "Tell the node if he should act as controller or as independent node.")
-
-	//TODO: TMP for client / server testing
-	//flag.IntVar(&targetId, "targetId", 1, "The id from the server the message should be sent to. Must be != the id.")
+	flag.BoolVar(&isCustomer, "isCustomer", false, "Tell the node if he should act as customer (true) or as company (false) node.")
 }
 
 // The main function is used when the programm is called / executed.
@@ -72,7 +68,7 @@ func main() {
 	}
 
 	go signalHandler() // Handle CTRL-C signals
-	utils.InitializeLogger(logFile, loggingPrefix)
+	utils.InitializeLogger(logFile, fmt.Sprintf("%s(%d)", loggingPrefix, id))
 
 	if isController {
 		controllerNode := server.New()
@@ -80,21 +76,23 @@ func main() {
 		controllerNode.SetIpAddressAsString(ipAddress)
 		controllerNode.SetPort(port)
 		controllerNode.SetUsedProtocol("tcp")
-		exercise1.StartController(controllerNode, allNodes)
+		exercise1.StartController(controllerNode, allNodes, messageContent)
 	} else {
 		if graphvizFile == "path/to/graphviz.{txt,dot}" {
 			neighbors = exercise1.ChooseThreeNeighbors(id, allNodes)
 		} else {
 			var err error
-			neighbors, err = filehandler.CollectNeighborsFromGraphvizFile(graphvizFile)
+			neighbors, err = filehandler.CollectNeighborsFromGraphvizFile(graphvizFile, id, allNodes)
 			if err != nil {
 				utils.PrintMessage("An error occured during the reading of the graphviz file: " + err.Error())
 				utils.PrintMessage("Choose three randam neighbors instead.")
 				neighbors = exercise1.ChooseThreeNeighbors(id, allNodes)
 			}
 		}
+		// Use this to set the number of used CPUs
+		//runtime.GOMAXPROCS(runtime.NumCPU())
 		utils.PrintMessage(fmt.Sprintf("The following %d neighbors are chosen: %v", len(neighbors), neighbors))
-		exercise1.StartIndependentNode(id, allNodes, neighbors)
+		exercise2.StartIndependentNode(id, isCustomer, allNodes, neighbors)
 	}
 }
 

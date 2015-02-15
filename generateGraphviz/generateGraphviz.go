@@ -4,25 +4,29 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/jzipfler/htw-ava/utils"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
-	"time"
+
+	"github.com/jzipfler/htw-ava/graph"
+	"github.com/jzipfler/htw-ava/utils"
 )
 
 var (
-	numberOfNodes int
-	numberOfEdges int
-	filename      string
+	numberOfNodes     int
+	numberOfEdges     int
+	directedGraph     bool
+	skipImageCreation bool
+	filename          string
 )
 
 func init() {
 	flag.StringVar(&filename, "filename", "path/to/generatedGraphviz.txt", "Defines how the file should be named where the generation is stored (default is ./generatedGraphviz.txt.")
-	flag.IntVar(&numberOfNodes, "nodes", 2, "Defines the number of nodes that should be created. There must be more than 2 nodes.")
-	flag.IntVar(&numberOfEdges, "edges", 3, "Defines the number of edges that should be used to connect the nodes. There must be more edges than nodes.")
+	flag.IntVar(&numberOfNodes, "nodes", 4, "Defines the number of nodes that should be created. There must be more than 2 nodes.")
+	flag.IntVar(&numberOfEdges, "edges", 5, "Defines the number of edges that should be used to connect the nodes. There must be more edges than nodes.")
+	flag.BoolVar(&directedGraph, "directedGraph", false, "Generates a directed instead of a undirected graph.")
+	flag.BoolVar(&skipImageCreation, "skipImageCreation", false, "Only generates the text file and skips the image creation.")
 }
 
 func main() {
@@ -31,8 +35,9 @@ func main() {
 		os.Exit(0)
 	}
 	flag.Parse()
-	if numberOfNodes < 2 {
-		log.Fatalln("There must be more than 2 nodes.")
+
+	if numberOfNodes <= 3 {
+		log.Fatalln("There must be more than 3 nodes.")
 	}
 	if numberOfEdges <= numberOfNodes {
 		log.Fatalln("The number of edges must be greater than the number of nodes.")
@@ -40,7 +45,7 @@ func main() {
 	if filename == "path/to/generatedGraphviz.txt" {
 		filename = "generatedGraphviz.txt"
 	}
-	if err := utils.CheckIfFileExists(filename); err == nil {
+	if exists := utils.CheckIfFileExists(filename); exists {
 		var input string
 		fmt.Printf("The file \"%s\" exists. Would you like to overwrite it (y|n)?\n", filename)
 		fmt.Print("\nInput: ")
@@ -58,33 +63,40 @@ func main() {
 			log.Fatalln("Wrong input. Please only insert y for \"YES\" or n for \"NO\".")
 		}
 	}
-	stringBuffer := bytes.NewBufferString("graph G {\n")
 
-	actualNumberOfEdges := 0
-	randomObject := rand.New(rand.NewSource(time.Now().UnixNano()))
-	var sourceNode, destinationNode int
-	for actualNumberOfEdges <= numberOfNodes {
-		sourceNode = randomObject.Intn(numberOfNodes)
-		sourceNode++
-		destinationNode = randomObject.Intn(numberOfNodes)
-		destinationNode++
-		stringBuffer.WriteString(fmt.Sprintf("\t%d--%d;\n", sourceNode, destinationNode))
-		actualNumberOfEdges++
+	graphObject := graph.New(numberOfNodes, numberOfEdges)
+	var graphString string
+	var err error
+	if directedGraph {
+		graphString, err = graphObject.DirectedGraphAsDotLanguageString()
+	} else {
+		graphString, err = graphObject.UndirectedGraphAsDotLanguageString()
 	}
-	stringBuffer.WriteString("}")
-	//Writes the files with 0644 Unix permissions.
-	ioutil.WriteFile(filename, stringBuffer.Bytes(), 0644)
-	log.Println("File successfully written.")
-	log.Println("Now try to generate a jpg file from the generated graphviz file.")
-	cmd := exec.Command("dot", "-Tjpg", filename, "-o generatedGraphviz.jpg")
-	err := cmd.Start()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
-	//log.Printf("Waiting for command to finish...")
-	if err := cmd.Wait(); err != nil {
-		log.Printf("Command finished with error: %v", err)
-		os.Exit(1)
+	fmt.Println(graphString)
+
+	stringBuffer := bytes.NewBufferString(graphString)
+
+	//Writes the files with 0644 Unix permissions.
+	if err := ioutil.WriteFile(filename, stringBuffer.Bytes(), 0644); err != nil {
+		log.Fatalln(err)
 	}
-	log.Println("Image successfully created.")
+	log.Println("File successfully written.")
+
+	if !skipImageCreation {
+		log.Println("Now try to generate a jpg file from the generated graphviz file.")
+		cmd := exec.Command("dot", "-Tjpg", filename, "-ogeneratedGraphviz.jpg")
+		err = cmd.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
+		//log.Printf("Waiting for command to finish...")
+		if err := cmd.Wait(); err != nil {
+			log.Printf("Command finished with error: %v", err)
+			os.Exit(1)
+		}
+		log.Println("Image successfully created.")
+	}
 }

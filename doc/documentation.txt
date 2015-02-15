@@ -1,7 +1,54 @@
 = Dokumentation Architektur verteilter Anwendungen
+Jan Zipfler (3553248)
+:doctype: book
+:icons:
+:max-width: 40em
+:imagesdir: ../exercise2/doc/
+
+== Programmiersprache
+Für dieses Projekt wurde die Programmiersprache GO verwendet.
+Dabei handelt es sich um eine von Google entwickelte Programmiersprache,
+die zu Beginn in einem der 20% Projekte entwickelt wurde.
+Hauptverantworklich für die Sprache sind die Entwickler:
+
+* Robert Griesemer
+* Rob Pike
+** Arbeitete an der Programmiersprache Limbo mit, welche sich
+auf der Erstellung von verteilten Systemen konzentrierte.
+* Ken Thompson
+** Unteranderem bekannt für das Mitwirken an der Erstellung der
+Sprache C.
+
+GO brüstet sich damit, für verteilte Anwendungen und vorallem
+Webservices entwicklet worden zu sein, wodurch es in meinen Augen
+eine gute Wahl für dieses Fach zu sein schien.
+Außerdem erleichtert die Sprache zu einen die parallele Ausführung von Code
+und zum anderen durch das Prinzip von Channels die Interprozesskommunikation.
+
+Als Entwicklungsumgebung kann ich die LiteIDE empfehlen, da andere
+Entwicklungsumgebungen einen geringeren Umfang bietet und sich
+schwieriger bedienen lassen.
+Des weiteren hat mich das Werk von _Mark Summerfield_ (Programming in Go)
+begleitet und mit den dort vorhanden Beispielen des öfteren weitergeholfen.
+
 
 include::../exercise1/doc/documentation_ex1.txt[]
 
 include::../exercise2/doc/documentation_ex2.txt[]
 
 include::../exercise3/doc/documentation_ex3.txt[]
+
+== Fazit (Übergreifend)
+Zusätzlich zu den Fazits der einzelnen Übungen wollte ich noch ein
+übergreifendes Fazit abgeben.
+Dabei handelt es sich vorallem darum, dass Dinge, die man sich vornimmt,
+nicht immer eingehalten werden.
+Wenn man bedenkt, dass ich auf gut Glück bereits gegen ende August mit der
+Bearbeitung der im letzten Jahr erschienenen Aufgabe 1 begonnen habe,
+so bin ich wirklich nicht weit gekommen.
+Zwar war ich mit der ersten Aufgabe zeitnah (für das Semester) fertig, jedoch
+hat das dazwischenliegende Praktikum einen größeren Strich durch die Rechnung
+gemacht, als ich zu beginn von ausgegangen bin.
+
+Desweiteren muss ich eingestehen, dass Go einige merkwürdige beziehungsweise
+gewöhnungsbedürftige Konzepte besitzt mit denen ich mich recht schwer getan habe.

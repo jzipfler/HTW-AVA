@@ -1,1 +1,155 @@
 == Exercise 1
+
+=== Erläuterung der Idee
+Da ich bereits im letzten Jahr an der Vorlesung teilgenommen hatte
+hatte ich bei der thematischen Bearbeitung von Aufgabe 1 keine Probleme.
+Schwieriger war es jedoch, wie auch schon im Jahr zuvor, sich in die
+neue Programmiersprache so einzuarbeiten, dass ein zum einen schönes und
+zum anderes gutes Ergebnis heraus kommt.
+
+Dabei habe ich dieses Jahr, zumindest zu Beginn, darauf Wert gelegt,
+dass die Anwendung die bereitgestellten Möglichkeiten von Go nutzt.
+Darunter gehörte zum einen, dass mir durch die Consistec näher gebrachte
+Prinzip der testgetriebenen Entwicklung.
+
+Ansonsten war die Idee dies Jahr erneut, einen Knoten zu erstellen der die
+autonomen Knoten steuern kann. Dabei kann der Kontrollknoten die autonomen
+Knoten starten und beenden.
+
+=== Nachrichtenformat
+Für die Definition des Nachrichtenformats wurde in diesem Jahr erneut auf
+Protocol Buffer zurückgegriffen.
+Dabei beinhaltet mein "Protokoll" diesesmal folgende Felder:
+
+* sourceIP
+* sourcePort
+* sourceId
+* NachrichtenTyp
+* KontrollTyp
+* NachrichtenInhalt
+* zeitStempel
+
+Dabei wird durch das setzen des Feldes _NachrichtenTyp_ festgelegt, ob
+es sich um eine Anwendungsnachricht oder Kontrollnachricht handelt.
+Bei einer Kontrollnachricht sollte auch das Feld _KontrollTyp_ gesetzt
+sein und die Werte _INITIALISIEREN_ oder _BEENDEN_ beinhalten.
+
+Der _NachrichtenInhalt_ wird primär für die Übertragung des Gerüchts genutzt.
+
+Alle anderen Felder sollten selbsterklärend sein.
+
+=== Erläuterung der Softwarestruktur
+Von der Struktur her existiert zum einen eine Implementierung eines
+Kontrollknotens und zum anderen die eines unabhängigen Knotens.
+
+Der Quellcode ist in Go in sogenannte Pakete unterteilt.
+
+==== Client - Server
+Bei der Implementierung habe ich mit der Überlegung begonnen, wie eine
+Datenstruktur geschaffen werden kann welche die geforderten Funktionalitäten
+bereitstellt.
+Zu diesem Zweck habe ich ein Client und Server "Objekt" erstellt, wobei
+das Server-Objekt die Funktionalitäten des Clients _implementiert_ oder
+anders gesagt, von diesem _erbt_.
+Da in Go keine Klassen existieren, man trotzdem etwas ähnliches wie eine
+Vererbung oder die Deklation von Funktionen für einen Typ implementieren
+kann, tue ich mich bei dieser Benennung etwas schwer.
+Tatsache jedoch ist, dass genau dies bei meiner Implementierung der Fall
+ist.
+Ein Client verwaltet einen Namen, das verwendete Protokoll und eine
+IP Adresse.
+Der Server erweitert den Client um einen Port.
+
+==== main()
+Zum starten der Applikation wurde ein avaStarter angelegt, der mit
+verschiedenen Kommandozeilenparametern gesteuert werden kann.
+Dabei ist eine der wichtigsten Optionen _isController_.
+Mit dieser wird dem Programm gesagt welche Routine angestoßen werden soll.
+Entweder verhält sich das Programm wie ein Kontrollknoten, der von außen
+alles steuern kann, oder als unabhängiger Knoten.
+
+==== Kontrollknoten
+Der Kontrollknoten dient dabei hauptsächlich dazu, die in der Knotenliste
+angegebenen Knoten aufzulisten um es dem Benutzer zu ermöglichem, mit
+einem dieser Knoten auf Basis der Kontrollnachrichten zu kommunizieren.
+Dabei handelt es sich um die beiden Nachrichtenarten *INITIALISIEREN* und
+*BEENDEN*.
+
+==== Unabhängige/Autonome Knoten
+Diese beinhalten die eigentliche Logik dieser Übungsaufgabe.
+Sie kommunizieren miteinander sobald eine Nachricht eintrifft.
+
+==== Generierung eines Graphviz Graphen
+Im Ordner _generateGraphviz_ befindet sich die ausführbare Quelldatei
+für die im Verzeichnis _graph_ definierten Funktionen für das Erstellen
+beziehungsweise Generieren eines gerichteten oder ungerichteten Graphen.
+Zusätzlich zur Generierung eines Graphen kann mithilfe des _dot_ Programmes
+der generierte Graph als JPEG exportiert werden.
+
+=== Hinweise auf Implementierungsbesonderheiten
+Die Besonderheiten sind zum einen die Implementierung der Tests, welche
+mir an manchen Stellen viel Zeit erspart haben indem Sie mich auf einen
+Fehler meiner Erweiterungen hingewiesen haben.
+
+Außerdem wurden Goroutinen verwendet die mit hilfe von Channels miteinander
+Kommunizieren können.
+
+Bei der Implementierung der Generierung von Graphen war es mir außerdem
+wichtig, dass ich sehe, was ich erstelle. Somit habe ich zuerst ein
+Shell-Skript geschrieben mit dem ich die Graphen als JPG, PNG, PDF oder SVG
+exportieren kann. Da ich jedoch nicht immer ein zusätzliches Shell-Skript
+aufrufen wollte, entschied ich mich dazu diese Funktion in mein Go Programm
+einzubauen.
+
+Auch wenn es nichts so besonderes ist, bin ich doch ein wenig Stolz auf den
+verwendeten Tabwriter, der die Ausgabe der Kommandozeile in einer Art
+mit Tab seperierten Liste darstellt.
+
+Eine negative Besonderheit die ich bis jetzt noch nicht beheben konnte ist,
+dass die Prozesse anscheinend zu schnell sind und ich dadurch beim senden
+einer Kontrollnachricht vom Kontrollknoten aus, je nach Situation, 5 Minuten
+warten muss bis die Nachricht bei dem jeweiligem Knoten ankommt.
+Das macht das Testen über längere Zeit sehr mühsehlig.
+Ich habe bereits versucht an verschiedenen stellen Sleeps einzubauen, welches
+sich jedoch nicht so ausgewirkt hat wie ich es mir erhofft hatte.
+Bei meinem letzten Versuch die Kommunikation auf UDP umzustellen musste ich
+jedoch feststellen, dass wie bereits im letzten Jahr, Pakete verloren gehen
+wenn der Empfangspuffer voll läuft.
+Mir ist bekannt, dass man dieses Puffer erhöhen kann, jedoch bringt das nur
+bis zu einem bestimmtem Punkt etwas.
+
+=== typische Beispielabläufe
+Ich habe im Ordner _exercise1_ einen weiteren Ordner mit dem Namen _example_
+angelegt welcher zum einen Makefile enthält um die Quelldateien neu zu bauen.
+Außerdem beinhaltet dieses Verzeichnis mehrere Skripte. Zum einen um einen
+Kontrollknoten und zum anderen um autonome Knoten zu starten.
+Dafür werden außerdem die Dateien _Nodes.txt_ und _Graphviz.txt_ benötigt.
+
+Man kann sich entweder dafür entscheiden die Knoten im _Gerücht-Modus_ oder
+normal laufen zu lassen.
+Dafür startet man eine Shell und fürt das gewünschte Skript aus.
+
+In einer weiteren Shell kann daraufhin das Skript für den Kontrollknoten
+aufgerufen werden.
+Mit diesem kann man sich daraufhin einen Knoten auswählen den man anstoßen
+möchte.
+
+Die Ausgaben der Knoten werden in Textdateien umgelenkt und können
+beispielsweise nach dem beenden der Programme eingesehen werden.
+
+Bei der Ausführung der autonomen Knoten im Gerüchte-Modus, schreibt jeder
+Knoten der das Gerücht glaubt eine Textdatei mit dem Gerücht in das
+aktuelle Verzeichnis.
+Dies erleichtert die Beurteilung, welcher Knoten das Gerücht geglaubt hat
+und wer nicht.
+
+=== Fazit (gewonnene Erkenntnisse)
+
+Aus dieser Übung habe ich hauptsächlich nur das erlernen der Sprache Go
+mitgenommen, da die Aufgabenstellung im letzten Jahr sehr ähnlich
+beziehungsweise teilweise identisch war.
+
+Ein weiterer Teil meiner Erkenntnis bezieht sich auf etwas, was bereits
+im der Vorlesung _Softwareentwicklung für Kommunikationsnetze_ bemerkt wurde.
+Dabei handelt es sich um die Tatsache, dass ein gutes Loggin bei solchen
+Anwendungen mit das wichtigste ist, da man sonst kaum weiß wo oben und unten ist.

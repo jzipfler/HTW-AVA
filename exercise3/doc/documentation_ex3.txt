@@ -1,1 +1,93 @@
 == Exercise 3
+
+WARNING: Nur zu ca 90-95% umgesetzt, da noch ein Problem auftritt.
+
+=== Erläuterung der Idee
+Die Idee bei Aufgabe 3 war, eine sequenzielle Anwendung zu erstellen
+um daraufhin einen weiteren Prozess hinzu zu nehmen um dann die daraus
+resultierenden Probleme zu beheben.
+
+Dabei wurde ein sogenannter *FileManager* und *FileUser* erstellt.
+Der FileManager verwaltet eine Datei und kann Berechtigungen an Benutzer
+vergeben.
+Das schreiben in die Datei wurde von mir so implementiert, dass der Benutzer
+den Pfad zur Datei ausgehändigt bekommt (Aufgrund der Anforderung, dass es
+nur auf localhost lauffähig sein soll) und diese daraufhin selbst beschreiben
+darf.
+
+=== Nachrichtenformat
+Für diese Aufgabe wurde ein abgewandeltes Nachrichtenformat benutzt.
+Es wurden drei Nachrichten definiert:
+* FilemanagerRequest
+* FilemanagerResponse
+* GoldmanToken
+
+Der FilemanagerRequest wird von einem Benutzer an den Verwalter
+gesendet der wiederum mit einem FilemanagerResponse antwortet.
+Somit empfängt ein Manager immer Requests und ein Benutzer
+immer Responses.
+
+Sollte es zu einem vermutlichem Deadlock kommen (was bei nur 2
+Managern immer der Fall ist), wird das GoldmanToken zu dem Prozess
+gesendet der als blockierender Prozess in der Response angegeben wurde.
+
+=== Erläuterung der Softwarestruktur
+Von der Struktur her existieren diesmal zwei Quellcode Dateien.
+Eine für den Verwalter und eine für den Benutzer.
+
+Die verwendete Datenstruktur ist weiterhin das Server-Object
+welches bereits für Aufgabe 1 verwendet wurde.
+
+=== Hinweise auf Implementierungsbesonderheiten
+Es wurden, wie auch schon in Aufgabe 1 und 2, Goroutinen eingesetzt.
+Diesmal wurde jedoch kein Channel verwendet, sondern ein Mutex,
+der sicherstellen soll, dass die ID desjenigen der die Datei derzeit
+belegt korrekt ist.
+
+Auch wurde eine sogenannte Closure genutzt um eine Variable als
+Funktion zu definieren um je nachdem ob es sich um einen Prozess
+mit gerader oder ungerader ID handelt eine andere Funktion zuweist.
+So konnte in der "Hauptschleife" nur diese eine Funktion verwendet
+werden ohne das immer unterschieden werden musste ob es ein gerader
+oder ungerader Prozess ist.
+
+Das wichtigste ist jedoch, dass die Benutzer jeweils nur mit
+geraden Protnummern ausgestattet werden dürfen.
+Dies wurde aus dem Grund definiert, weil der darauffolgende
+ungerade Port dafür verwendet wird um das Token zu empfangen.
+Bei dem Empfangen unterschiedlicher Nachrichtenarten auf einem
+Port kam es bei der Verwendung von Protobuf zu problemen, da
+dieser nicht genau feststellen konnte um welchen Nachrichtentyp
+es sich handelt.
+
+=== typische Beispielabläufe
+Wie auch bei den anderen Aufgaben existiert im _exercise3_ Ordner
+ein Verzeichnis namens _example_ in dem ein Makefile und Shell
+Skripte zu finden sind.
+
+Die Datei _startSkript.sh_ wurde nicht oft verwendet.
+Der Ablauf der meist genutzt wurde war, dass vier
+Terminals gestartet wurden.
+In den ersten beiden wurden ein ManagerA und ein ManagerB,
+zu denen jeweils auch Start-Skripte existieren, gestartet.
+Die zwei verbleibenden Terminals werden jeweils durch das Skirpt
+_startFileUser.sh_ in Betrieb genommen.
+Gibt man diesem Skript keinen Parameter mit, so wird eine Version
+des FileUsers gestartet.
+Wird mindestens ein Parameter mitgegeben, so führt das Skript einen
+FileUser mit anderen Einstellungen aus.
+
+=== Fazit (gewonnene Erkenntnisse)
+Bei dieser Aufgabe habe ich wiedereinmal feststellen müssen,
+dass Aufgaben manchmal leichter klingen als sie eigentlich sind.
+Ich bin davon ausgegangen, dass ich diese Aufgabe in kürzester Zeit
+lösen könne, hatte jedoch so viele Probleme beim Debuggen und beim
+finden von Fehlern.
+
+Es war desweiteren Ärgerlich nach geraumer Zeit feststellen zu
+müssen, dass unterschiedliche Nachrichten auf dem selbem Port
+schwierig zu handhaben sind.
+
+Ansonsten war dies eine sehr spannende Aufgabe, die mir (und
+teilweise meinen Kollegen bei der Consistec) sehr viel Spaß gemacht
+hat.

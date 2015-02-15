@@ -31,6 +31,15 @@ schwieriger bedienen lassen.
 Des weiteren hat mich das Werk von _Mark Summerfield_ (Programming in Go)
 begleitet und mit den dort vorhanden Beispielen des öfteren weitergeholfen.
 
+=== Installation der benötigten Pakete
+Um alle Pakete zur Übersetzung meiner Programme zu bekommen
+können die von Go zur Verfügung gestellten Tools genutzt werden.
+Da mein Quellcode auf GitHub öffentlich zur Verfügung steht, kann
+mein Projekt mit dem folgendem Befehl heruntergeladen werden:
+
+```sh
+go get -u github.com/jzipfler/HTW-AVA/{avaStarter,avaStarter2,exercise3/fileManager,exercise3/fileUser}
+```
 
 include::../exercise1/doc/documentation_ex1.txt[]
 
@@ -52,3 +61,9 @@ gemacht, als ich zu beginn von ausgegangen bin.
 
 Desweiteren muss ich eingestehen, dass Go einige merkwürdige beziehungsweise
 gewöhnungsbedürftige Konzepte besitzt mit denen ich mich recht schwer getan habe.
+Dafür wurde mir jedoch das Leben durch die Verwendung von GitHub
+etwas erleichtert.
+Ich nutzte die dort angebotene Funktion _Issues_ einzureichen welche ich
+ab und an erstellte um diese nach und nach abzuarbeiten.
+Außerdem vereinfacht die _git gui_ die Arbeit beim comitten, so dass
+nur bestimmte teile aus einer Datei heraus comitted werden.

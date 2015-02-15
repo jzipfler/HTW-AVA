@@ -1,0 +1,7 @@
+= Dokumentation Architektur verteilter Anwendungen
+
+include::../exercise1/doc/documentation_ex1.txt[]
+
+include::../exercise2/doc/documentation_ex2.txt[]
+
+include::../exercise3/doc/documentation_ex3.txt[]

@@ -85,8 +85,10 @@ func main() {
 		controllerNode.SetIpAddressAsString(ipAddress)
 		controllerNode.SetPort(port)
 		if useTCP {
+			utils.PrintMessage("Set used protocol to TCP")
 			controllerNode.SetUsedProtocol("tcp")
 		} else {
+			utils.PrintMessage("Set used protocol to UDP")
 			controllerNode.SetUsedProtocol("udp")
 		}
 		exercise1.StartController(controllerNode, allNodes, messageContent)

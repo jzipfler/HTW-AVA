@@ -1,0 +1,1217 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 8.6.9" />
+<title>Dokumentation Architektur verteilter Anwendungen</title>
+<style type="text/css">
+/* Shared CSS for AsciiDoc xhtml11 and html5 backends */
+
+/* Default font. */
+body {
+  font-family: Georgia,serif;
+}
+
+/* Title font. */
+h1, h2, h3, h4, h5, h6,
+div.title, caption.title,
+thead, p.table.header,
+#toctitle,
+#author, #revnumber, #revdate, #revremark,
+#footer {
+  font-family: Arial,Helvetica,sans-serif;
+}
+
+body {
+  margin: 1em 5% 1em 5%;
+}
+
+a {
+  color: blue;
+  text-decoration: underline;
+}
+a:visited {
+  color: fuchsia;
+}
+
+em {
+  font-style: italic;
+  color: navy;
+}
+
+strong {
+  font-weight: bold;
+  color: #083194;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #527bbd;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+h1, h2, h3 {
+  border-bottom: 2px solid silver;
+}
+h2 {
+  padding-top: 0.5em;
+}
+h3 {
+  float: left;
+}
+h3 + * {
+  clear: left;
+}
+h5 {
+  font-size: 1.0em;
+}
+
+div.sectionbody {
+  margin-left: 0;
+}
+
+hr {
+  border: 1px solid silver;
+}
+
+p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+ul, ol, li > p {
+  margin-top: 0;
+}
+ul > li     { color: #aaa; }
+ul > li > * { color: black; }
+
+.monospaced, code, pre {
+  font-family: "Courier New", Courier, monospace;
+  font-size: inherit;
+  color: navy;
+  padding: 0;
+  margin: 0;
+}
+pre {
+  white-space: pre-wrap;
+}
+
+#author {
+  color: #527bbd;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+#email {
+}
+#revnumber, #revdate, #revremark {
+}
+
+#footer {
+  font-size: small;
+  border-top: 2px solid silver;
+  padding-top: 0.5em;
+  margin-top: 4.0em;
+}
+#footer-text {
+  float: left;
+  padding-bottom: 0.5em;
+}
+#footer-badges {
+  float: right;
+  padding-bottom: 0.5em;
+}
+
+#preamble {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+div.imageblock, div.exampleblock, div.verseblock,
+div.quoteblock, div.literalblock, div.listingblock, div.sidebarblock,
+div.admonitionblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+div.admonitionblock {
+  margin-top: 2.0em;
+  margin-bottom: 2.0em;
+  margin-right: 10%;
+  color: #606060;
+}
+
+div.content { /* Block element content. */
+  padding: 0;
+}
+
+/* Block element titles. */
+div.title, caption.title {
+  color: #527bbd;
+  font-weight: bold;
+  text-align: left;
+  margin-top: 1.0em;
+  margin-bottom: 0.5em;
+}
+div.title + * {
+  margin-top: 0;
+}
+
+td div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content + div.title {
+  margin-top: 0.0em;
+}
+
+div.sidebarblock > div.content {
+  background: #ffffee;
+  border: 1px solid #dddddd;
+  border-left: 4px solid #f0f0f0;
+  padding: 0.5em;
+}
+
+div.listingblock > div.content {
+  border: 1px solid #dddddd;
+  border-left: 5px solid #f0f0f0;
+  background: #f8f8f8;
+  padding: 0.5em;
+}
+
+div.quoteblock, div.verseblock {
+  padding-left: 1.0em;
+  margin-left: 1.0em;
+  margin-right: 10%;
+  border-left: 5px solid #f0f0f0;
+  color: #888;
+}
+
+div.quoteblock > div.attribution {
+  padding-top: 0.5em;
+  text-align: right;
+}
+
+div.verseblock > pre.content {
+  font-family: inherit;
+  font-size: inherit;
+}
+div.verseblock > div.attribution {
+  padding-top: 0.75em;
+  text-align: left;
+}
+/* DEPRECATED: Pre version 8.2.7 verse style literal block. */
+div.verseblock + div.attribution {
+  text-align: left;
+}
+
+div.admonitionblock .icon {
+  vertical-align: top;
+  font-size: 1.1em;
+  font-weight: bold;
+  text-decoration: underline;
+  color: #527bbd;
+  padding-right: 0.5em;
+}
+div.admonitionblock td.content {
+  padding-left: 0.5em;
+  border-left: 3px solid #dddddd;
+}
+
+div.exampleblock > div.content {
+  border-left: 3px solid #dddddd;
+  padding-left: 0.5em;
+}
+
+div.imageblock div.content { padding-left: 0; }
+span.image img { border-style: none; vertical-align: text-bottom; }
+a.image:visited { color: white; }
+
+dl {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+dt {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+  font-style: normal;
+  color: navy;
+}
+dd > *:first-child {
+  margin-top: 0.1em;
+}
+
+ul, ol {
+    list-style-position: outside;
+}
+ol.arabic {
+  list-style-type: decimal;
+}
+ol.loweralpha {
+  list-style-type: lower-alpha;
+}
+ol.upperalpha {
+  list-style-type: upper-alpha;
+}
+ol.lowerroman {
+  list-style-type: lower-roman;
+}
+ol.upperroman {
+  list-style-type: upper-roman;
+}
+
+div.compact ul, div.compact ol,
+div.compact p, div.compact p,
+div.compact div, div.compact div {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+}
+
+tfoot {
+  font-weight: bold;
+}
+td > div.verse {
+  white-space: pre;
+}
+
+div.hdlist {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+div.hdlist tr {
+  padding-bottom: 15px;
+}
+dt.hdlist1.strong, td.hdlist1.strong {
+  font-weight: bold;
+}
+td.hdlist1 {
+  vertical-align: top;
+  font-style: normal;
+  padding-right: 0.8em;
+  color: navy;
+}
+td.hdlist2 {
+  vertical-align: top;
+}
+div.hdlist.compact tr {
+  margin: 0;
+  padding-bottom: 0;
+}
+
+.comment {
+  background: yellow;
+}
+
+.footnote, .footnoteref {
+  font-size: 0.8em;
+}
+
+span.footnote, span.footnoteref {
+  vertical-align: super;
+}
+
+#footnotes {
+  margin: 20px 0 20px 0;
+  padding: 7px 0 0 0;
+}
+
+#footnotes div.footnote {
+  margin: 0 0 5px 0;
+}
+
+#footnotes hr {
+  border: none;
+  border-top: 1px solid silver;
+  height: 1px;
+  text-align: left;
+  margin-left: 0;
+  width: 20%;
+  min-width: 100px;
+}
+
+div.colist td {
+  padding-right: 0.5em;
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+div.colist td img {
+  margin-top: 0.3em;
+}
+
+@media print {
+  #footer-badges { display: none; }
+}
+
+#toc {
+  margin-bottom: 2.5em;
+}
+
+#toctitle {
+  color: #527bbd;
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-top: 1.0em;
+  margin-bottom: 0.1em;
+}
+
+div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+div.toclevel2 {
+  margin-left: 2em;
+  font-size: 0.9em;
+}
+div.toclevel3 {
+  margin-left: 4em;
+  font-size: 0.9em;
+}
+div.toclevel4 {
+  margin-left: 6em;
+  font-size: 0.9em;
+}
+
+span.aqua { color: aqua; }
+span.black { color: black; }
+span.blue { color: blue; }
+span.fuchsia { color: fuchsia; }
+span.gray { color: gray; }
+span.green { color: green; }
+span.lime { color: lime; }
+span.maroon { color: maroon; }
+span.navy { color: navy; }
+span.olive { color: olive; }
+span.purple { color: purple; }
+span.red { color: red; }
+span.silver { color: silver; }
+span.teal { color: teal; }
+span.white { color: white; }
+span.yellow { color: yellow; }
+
+span.aqua-background { background: aqua; }
+span.black-background { background: black; }
+span.blue-background { background: blue; }
+span.fuchsia-background { background: fuchsia; }
+span.gray-background { background: gray; }
+span.green-background { background: green; }
+span.lime-background { background: lime; }
+span.maroon-background { background: maroon; }
+span.navy-background { background: navy; }
+span.olive-background { background: olive; }
+span.purple-background { background: purple; }
+span.red-background { background: red; }
+span.silver-background { background: silver; }
+span.teal-background { background: teal; }
+span.white-background { background: white; }
+span.yellow-background { background: yellow; }
+
+span.big { font-size: 2em; }
+span.small { font-size: 0.6em; }
+
+span.underline { text-decoration: underline; }
+span.overline { text-decoration: overline; }
+span.line-through { text-decoration: line-through; }
+
+div.unbreakable { page-break-inside: avoid; }
+
+
+/*
+ * xhtml11 specific
+ *
+ * */
+
+div.tableblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+div.tableblock > table {
+  border: 3px solid #527bbd;
+}
+thead, p.table.header {
+  font-weight: bold;
+  color: #527bbd;
+}
+p.table {
+  margin-top: 0;
+}
+/* Because the table frame attribute is overriden by CSS in most browsers. */
+div.tableblock > table[frame="void"] {
+  border-style: none;
+}
+div.tableblock > table[frame="hsides"] {
+  border-left-style: none;
+  border-right-style: none;
+}
+div.tableblock > table[frame="vsides"] {
+  border-top-style: none;
+  border-bottom-style: none;
+}
+
+
+/*
+ * html5 specific
+ *
+ * */
+
+table.tableblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+thead, p.tableblock.header {
+  font-weight: bold;
+  color: #527bbd;
+}
+p.tableblock {
+  margin-top: 0;
+}
+table.tableblock {
+  border-width: 3px;
+  border-spacing: 0px;
+  border-style: solid;
+  border-color: #527bbd;
+  border-collapse: collapse;
+}
+th.tableblock, td.tableblock {
+  border-width: 1px;
+  padding: 4px;
+  border-style: solid;
+  border-color: #527bbd;
+}
+
+table.tableblock.frame-topbot {
+  border-left-style: hidden;
+  border-right-style: hidden;
+}
+table.tableblock.frame-sides {
+  border-top-style: hidden;
+  border-bottom-style: hidden;
+}
+table.tableblock.frame-none {
+  border-style: hidden;
+}
+
+th.tableblock.halign-left, td.tableblock.halign-left {
+  text-align: left;
+}
+th.tableblock.halign-center, td.tableblock.halign-center {
+  text-align: center;
+}
+th.tableblock.halign-right, td.tableblock.halign-right {
+  text-align: right;
+}
+
+th.tableblock.valign-top, td.tableblock.valign-top {
+  vertical-align: top;
+}
+th.tableblock.valign-middle, td.tableblock.valign-middle {
+  vertical-align: middle;
+}
+th.tableblock.valign-bottom, td.tableblock.valign-bottom {
+  vertical-align: bottom;
+}
+
+
+/*
+ * manpage specific
+ *
+ * */
+
+body.manpage h1 {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  border-top: 2px solid silver;
+  border-bottom: 2px solid silver;
+}
+body.manpage h2 {
+  border-style: none;
+}
+body.manpage div.sectionbody {
+  margin-left: 3em;
+}
+
+@media print {
+  body.manpage div#toc { display: none; }
+}
+
+
+</style>
+<script type="text/javascript">
+/*<![CDATA[*/
+var asciidoc = {  // Namespace.
+
+/////////////////////////////////////////////////////////////////////
+// Table Of Contents generator
+/////////////////////////////////////////////////////////////////////
+
+/* Author: Mihai Bazon, September 2002
+ * http://students.infoiasi.ro/~mishoo
+ *
+ * Table Of Content generator
+ * Version: 0.4
+ *
+ * Feel free to use this script under the terms of the GNU General Public
+ * License, as long as you do not remove or alter this notice.
+ */
+
+ /* modified by Troy D. Hanson, September 2006. License: GPL */
+ /* modified by Stuart Rackham, 2006, 2009. License: GPL */
+
+// toclevels = 1..4.
+toc: function (toclevels) {
+
+  function getText(el) {
+    var text = "";
+    for (var i = el.firstChild; i != null; i = i.nextSibling) {
+      if (i.nodeType == 3 /* Node.TEXT_NODE */) // IE doesn't speak constants.
+        text += i.data;
+      else if (i.firstChild != null)
+        text += getText(i);
+    }
+    return text;
+  }
+
+  function TocEntry(el, text, toclevel) {
+    this.element = el;
+    this.text = text;
+    this.toclevel = toclevel;
+  }
+
+  function tocEntries(el, toclevels) {
+    var result = new Array;
+    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
+    // Function that scans the DOM tree for header elements (the DOM2
+    // nodeIterator API would be a better technique but not supported by all
+    // browsers).
+    var iterate = function (el) {
+      for (var i = el.firstChild; i != null; i = i.nextSibling) {
+        if (i.nodeType == 1 /* Node.ELEMENT_NODE */) {
+          var mo = re.exec(i.tagName);
+          if (mo && (i.getAttribute("class") || i.getAttribute("className")) != "float") {
+            result[result.length] = new TocEntry(i, getText(i), mo[1]-1);
+          }
+          iterate(i);
+        }
+      }
+    }
+    iterate(el);
+    return result;
+  }
+
+  var toc = document.getElementById("toc");
+  if (!toc) {
+    return;
+  }
+
+  // Delete existing TOC entries in case we're reloading the TOC.
+  var tocEntriesToRemove = [];
+  var i;
+  for (i = 0; i < toc.childNodes.length; i++) {
+    var entry = toc.childNodes[i];
+    if (entry.nodeName.toLowerCase() == 'div'
+     && entry.getAttribute("class")
+     && entry.getAttribute("class").match(/^toclevel/))
+      tocEntriesToRemove.push(entry);
+  }
+  for (i = 0; i < tocEntriesToRemove.length; i++) {
+    toc.removeChild(tocEntriesToRemove[i]);
+  }
+
+  // Rebuild TOC entries.
+  var entries = tocEntries(document.getElementById("content"), toclevels);
+  for (var i = 0; i < entries.length; ++i) {
+    var entry = entries[i];
+    if (entry.element.id == "")
+      entry.element.id = "_toc_" + i;
+    var a = document.createElement("a");
+    a.href = "#" + entry.element.id;
+    a.appendChild(document.createTextNode(entry.text));
+    var div = document.createElement("div");
+    div.appendChild(a);
+    div.className = "toclevel" + entry.toclevel;
+    toc.appendChild(div);
+  }
+  if (entries.length == 0)
+    toc.parentNode.removeChild(toc);
+},
+
+
+/////////////////////////////////////////////////////////////////////
+// Footnotes generator
+/////////////////////////////////////////////////////////////////////
+
+/* Based on footnote generation code from:
+ * http://www.brandspankingnew.net/archive/2005/07/format_footnote.html
+ */
+
+footnotes: function () {
+  // Delete existing footnote entries in case we're reloading the footnodes.
+  var i;
+  var noteholder = document.getElementById("footnotes");
+  if (!noteholder) {
+    return;
+  }
+  var entriesToRemove = [];
+  for (i = 0; i < noteholder.childNodes.length; i++) {
+    var entry = noteholder.childNodes[i];
+    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
+      entriesToRemove.push(entry);
+  }
+  for (i = 0; i < entriesToRemove.length; i++) {
+    noteholder.removeChild(entriesToRemove[i]);
+  }
+
+  // Rebuild footnote entries.
+  var cont = document.getElementById("content");
+  var spans = cont.getElementsByTagName("span");
+  var refs = {};
+  var n = 0;
+  for (i=0; i<spans.length; i++) {
+    if (spans[i].className == "footnote") {
+      n++;
+      var note = spans[i].getAttribute("data-note");
+      if (!note) {
+        // Use [\s\S] in place of . so multi-line matches work.
+        // Because JavaScript has no s (dotall) regex flag.
+        note = spans[i].innerHTML.match(/\s*\[([\s\S]*)]\s*/)[1];
+        spans[i].innerHTML =
+          "[<a id='_footnoteref_" + n + "' href='#_footnote_" + n +
+          "' title='View footnote' class='footnote'>" + n + "</a>]";
+        spans[i].setAttribute("data-note", note);
+      }
+      noteholder.innerHTML +=
+        "<div class='footnote' id='_footnote_" + n + "'>" +
+        "<a href='#_footnoteref_" + n + "' title='Return to text'>" +
+        n + "</a>. " + note + "</div>";
+      var id =spans[i].getAttribute("id");
+      if (id != null) refs["#"+id] = n;
+    }
+  }
+  if (n == 0)
+    noteholder.parentNode.removeChild(noteholder);
+  else {
+    // Process footnoterefs.
+    for (i=0; i<spans.length; i++) {
+      if (spans[i].className == "footnoteref") {
+        var href = spans[i].getElementsByTagName("a")[0].getAttribute("href");
+        href = href.match(/#.*/)[0];  // Because IE return full URL.
+        n = refs[href];
+        spans[i].innerHTML =
+          "[<a href='#_footnote_" + n +
+          "' title='View footnote' class='footnote'>" + n + "</a>]";
+      }
+    }
+  }
+},
+
+install: function(toclevels) {
+  var timerId;
+
+  function reinstall() {
+    asciidoc.footnotes();
+    if (toclevels) {
+      asciidoc.toc(toclevels);
+    }
+  }
+
+  function reinstallAndRemoveTimer() {
+    clearInterval(timerId);
+    reinstall();
+  }
+
+  timerId = setInterval(reinstall, 500);
+  if (document.addEventListener)
+    document.addEventListener("DOMContentLoaded", reinstallAndRemoveTimer, false);
+  else
+    window.onload = reinstallAndRemoveTimer;
+}
+
+}
+asciidoc.install();
+/*]]>*/
+</script>
+</head>
+<body class="book" style="max-width:40em">
+<div id="header">
+<h1>Dokumentation Architektur verteilter Anwendungen</h1>
+<span id="author">Jan Zipfler (3553248)</span><br />
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="_programmiersprache">Programmiersprache</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Für dieses Projekt wurde die Programmiersprache GO verwendet.
+Dabei handelt es sich um eine von Google entwickelte Programmiersprache,
+die zu Beginn in einem der 20% Projekte entwickelt wurde.
+Hauptverantworklich für die Sprache sind die Entwickler:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Robert Griesemer
+</p>
+</li>
+<li>
+<p>
+Rob Pike
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+Arbeitete an der Programmiersprache Limbo mit, welche sich
+auf der Erstellung von verteilten Systemen konzentrierte.
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+Ken Thompson
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+Unteranderem bekannt für das Mitwirken an der Erstellung der
+Sprache C.
+</p>
+</li>
+</ul></div>
+</li>
+</ul></div>
+<div class="paragraph"><p>GO brüstet sich damit, für verteilte Anwendungen und vorallem
+Webservices entwicklet worden zu sein, wodurch es in meinen Augen
+eine gute Wahl für dieses Fach zu sein schien.
+Außerdem erleichtert die Sprache zu einen die parallele Ausführung von Code
+und zum anderen durch das Prinzip von Channels die Interprozesskommunikation.</p></div>
+<div class="paragraph"><p>Als Entwicklungsumgebung kann ich die LiteIDE empfehlen, da andere
+Entwicklungsumgebungen einen geringeren Umfang bietet und sich
+schwieriger bedienen lassen.
+Des weiteren hat mich das Werk von <em>Mark Summerfield</em> (Programming in Go)
+begleitet und mit den dort vorhanden Beispielen des öfteren weitergeholfen.</p></div>
+<div class="sect2">
+<h3 id="_installation_der_benötigten_pakete">Installation der benötigten Pakete</h3>
+<div class="paragraph"><p>Um alle Pakete zur Übersetzung meiner Programme zu bekommen
+können die von Go zur Verfügung gestellten Tools genutzt werden.
+Da mein Quellcode auf GitHub öffentlich zur Verfügung steht, kann
+mein Projekt mit dem folgendem Befehl heruntergeladen werden:</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.7
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>go get -u github<span style="color: #990000">.</span>com/jzipfler/HTW-AVA<span style="color: #990000">/</span>{avaStarter<span style="color: #990000">,</span>avaStarter2<span style="color: #990000">,</span>exercise3/fileManager<span style="color: #990000">,</span>exercise3/fileUser}</tt></pre></div></div>
+<div class="paragraph"><p>Sollte dies fehlschlagen kann das Repository mithilfe von git
+wie folgt geklont werden:</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.7
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>git clone github<span style="color: #990000">.</span>com/jzipfler/HTW-AVA<span style="color: #990000">/</span> <span style="color: #009900">${GOPATH}</span>/src/github<span style="color: #990000">.</span>com/jzipfler/HTW-AVA</tt></pre></div></div>
+<div class="paragraph"><p>Nachdem die Dateien auf der Festplatte sind, können die Pakete
+entweder über die Makefiles in den <em>example</em> Ordnern,
+oder über die folgenden Befehle übersetzt werden:</p></div>
+<div class="listingblock">
+<div class="content"><!-- Generator: GNU source-highlight 3.1.7
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt>git build -v github<span style="color: #990000">.</span>com/jzipfler/HTW-AVA<span style="color: #990000">/</span>{avaStarter<span style="color: #990000">,</span>avaStarter2<span style="color: #990000">,</span>exercise3/fileManager<span style="color: #990000">,</span>exercise3/fileUser}</tt></pre></div></div>
+<div class="paragraph"><p>Dabei muss beachtet werden, dass dieses Projekt eine Abhängigkeit
+zu Protobuf aufweist, welches einmal in der Version von
+googlecode und von github benötigt wird.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_exercise_1">Exercise 1</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_erläuterung_der_idee">Erläuterung der Idee</h3>
+<div class="paragraph"><p>Da ich bereits im letzten Jahr an der Vorlesung teilgenommen hatte
+hatte ich bei der thematischen Bearbeitung von Aufgabe 1 keine Probleme.
+Schwieriger war es jedoch, wie auch schon im Jahr zuvor, sich in die
+neue Programmiersprache so einzuarbeiten, dass ein zum einen schönes und
+zum anderes gutes Ergebnis heraus kommt.</p></div>
+<div class="paragraph"><p>Dabei habe ich dieses Jahr, zumindest zu Beginn, darauf Wert gelegt,
+dass die Anwendung die bereitgestellten Möglichkeiten von Go nutzt.
+Darunter gehörte zum einen, dass mir durch die Consistec näher gebrachte
+Prinzip der testgetriebenen Entwicklung.</p></div>
+<div class="paragraph"><p>Ansonsten war die Idee dies Jahr erneut, einen Knoten zu erstellen der die
+autonomen Knoten steuern kann. Dabei kann der Kontrollknoten die autonomen
+Knoten starten und beenden.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_nachrichtenformat">Nachrichtenformat</h3>
+<div class="paragraph"><p>Für die Definition des Nachrichtenformats wurde in diesem Jahr erneut auf
+Protocol Buffer zurückgegriffen.
+Dabei beinhaltet mein "Protokoll" diesesmal folgende Felder:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+sourceIP
+</p>
+</li>
+<li>
+<p>
+sourcePort
+</p>
+</li>
+<li>
+<p>
+sourceId
+</p>
+</li>
+<li>
+<p>
+NachrichtenTyp
+</p>
+</li>
+<li>
+<p>
+KontrollTyp
+</p>
+</li>
+<li>
+<p>
+NachrichtenInhalt
+</p>
+</li>
+<li>
+<p>
+zeitStempel
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Dabei wird durch das setzen des Feldes <em>NachrichtenTyp</em> festgelegt, ob
+es sich um eine Anwendungsnachricht oder Kontrollnachricht handelt.
+Bei einer Kontrollnachricht sollte auch das Feld <em>KontrollTyp</em> gesetzt
+sein und die Werte <em>INITIALISIEREN</em> oder <em>BEENDEN</em> beinhalten.</p></div>
+<div class="paragraph"><p>Der <em>NachrichtenInhalt</em> wird primär für die Übertragung des Gerüchts genutzt.</p></div>
+<div class="paragraph"><p>Alle anderen Felder sollten selbsterklärend sein.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_erläuterung_der_softwarestruktur">Erläuterung der Softwarestruktur</h3>
+<div class="paragraph"><p>Von der Struktur her existiert zum einen eine Implementierung eines
+Kontrollknotens und zum anderen die eines unabhängigen Knotens.</p></div>
+<div class="paragraph"><p>Der Quellcode ist in Go in sogenannte Pakete unterteilt.</p></div>
+<div class="sect3">
+<h4 id="_client_server">Client - Server</h4>
+<div class="paragraph"><p>Bei der Implementierung habe ich mit der Überlegung begonnen, wie eine
+Datenstruktur geschaffen werden kann welche die geforderten Funktionalitäten
+bereitstellt.
+Zu diesem Zweck habe ich ein Client und Server "Objekt" erstellt, wobei
+das Server-Objekt die Funktionalitäten des Clients <em>implementiert</em> oder
+anders gesagt, von diesem <em>erbt</em>.
+Da in Go keine Klassen existieren, man trotzdem etwas ähnliches wie eine
+Vererbung oder die Deklation von Funktionen für einen Typ implementieren
+kann, tue ich mich bei dieser Benennung etwas schwer.
+Tatsache jedoch ist, dass genau dies bei meiner Implementierung der Fall
+ist.
+Ein Client verwaltet einen Namen, das verwendete Protokoll und eine
+IP Adresse.
+Der Server erweitert den Client um einen Port.</p></div>
+</div>
+<div class="sect3">
+<h4 id="_main">main()</h4>
+<div class="paragraph"><p>Zum starten der Applikation wurde ein avaStarter angelegt, der mit
+verschiedenen Kommandozeilenparametern gesteuert werden kann.
+Dabei ist eine der wichtigsten Optionen <em>isController</em>.
+Mit dieser wird dem Programm gesagt welche Routine angestoßen werden soll.
+Entweder verhält sich das Programm wie ein Kontrollknoten, der von außen
+alles steuern kann, oder als unabhängiger Knoten.</p></div>
+</div>
+<div class="sect3">
+<h4 id="_kontrollknoten">Kontrollknoten</h4>
+<div class="paragraph"><p>Der Kontrollknoten dient dabei hauptsächlich dazu, die in der Knotenliste
+angegebenen Knoten aufzulisten um es dem Benutzer zu ermöglichem, mit
+einem dieser Knoten auf Basis der Kontrollnachrichten zu kommunizieren.
+Dabei handelt es sich um die beiden Nachrichtenarten <strong>INITIALISIEREN</strong> und
+<strong>BEENDEN</strong>.</p></div>
+</div>
+<div class="sect3">
+<h4 id="_unabhängige_autonome_knoten">Unabhängige/Autonome Knoten</h4>
+<div class="paragraph"><p>Diese beinhalten die eigentliche Logik dieser Übungsaufgabe.
+Sie kommunizieren miteinander sobald eine Nachricht eintrifft.</p></div>
+</div>
+<div class="sect3">
+<h4 id="_generierung_eines_graphviz_graphen">Generierung eines Graphviz Graphen</h4>
+<div class="paragraph"><p>Im Ordner <em>generateGraphviz</em> befindet sich die ausführbare Quelldatei
+für die im Verzeichnis <em>graph</em> definierten Funktionen für das Erstellen
+beziehungsweise Generieren eines gerichteten oder ungerichteten Graphen.
+Zusätzlich zur Generierung eines Graphen kann mithilfe des <em>dot</em> Programmes
+der generierte Graph als JPEG exportiert werden.</p></div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_hinweise_auf_implementierungsbesonderheiten">Hinweise auf Implementierungsbesonderheiten</h3>
+<div class="paragraph"><p>Die Besonderheiten sind zum einen die Implementierung der Tests, welche
+mir an manchen Stellen viel Zeit erspart haben indem Sie mich auf einen
+Fehler meiner Erweiterungen hingewiesen haben.</p></div>
+<div class="paragraph"><p>Außerdem wurden Goroutinen verwendet die mit hilfe von Channels miteinander
+Kommunizieren können.</p></div>
+<div class="paragraph"><p>Bei der Implementierung der Generierung von Graphen war es mir außerdem
+wichtig, dass ich sehe, was ich erstelle. Somit habe ich zuerst ein
+Shell-Skript geschrieben mit dem ich die Graphen als JPG, PNG, PDF oder SVG
+exportieren kann. Da ich jedoch nicht immer ein zusätzliches Shell-Skript
+aufrufen wollte, entschied ich mich dazu diese Funktion in mein Go Programm
+einzubauen.</p></div>
+<div class="paragraph"><p>Auch wenn es nichts so besonderes ist, bin ich doch ein wenig Stolz auf den
+verwendeten Tabwriter, der die Ausgabe der Kommandozeile in einer Art
+mit Tab seperierten Liste darstellt.</p></div>
+<div class="paragraph"><p>Eine negative Besonderheit die ich bis jetzt noch nicht beheben konnte ist,
+dass die Prozesse anscheinend zu schnell sind und ich dadurch beim senden
+einer Kontrollnachricht vom Kontrollknoten aus, je nach Situation, 5 Minuten
+warten muss bis die Nachricht bei dem jeweiligem Knoten ankommt.
+Das macht das Testen über längere Zeit sehr mühsehlig.
+Ich habe bereits versucht an verschiedenen stellen Sleeps einzubauen, welches
+sich jedoch nicht so ausgewirkt hat wie ich es mir erhofft hatte.
+Bei meinem letzten Versuch die Kommunikation auf UDP umzustellen musste ich
+jedoch feststellen, dass wie bereits im letzten Jahr, Pakete verloren gehen
+wenn der Empfangspuffer voll läuft.
+Mir ist bekannt, dass man dieses Puffer erhöhen kann, jedoch bringt das nur
+bis zu einem bestimmtem Punkt etwas.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_typische_beispielabläufe">typische Beispielabläufe</h3>
+<div class="paragraph"><p>Ich habe im Ordner <em>exercise1</em> einen weiteren Ordner mit dem Namen <em>example</em>
+angelegt welcher zum einen Makefile enthält um die Quelldateien neu zu bauen.
+Außerdem beinhaltet dieses Verzeichnis mehrere Skripte. Zum einen um einen
+Kontrollknoten und zum anderen um autonome Knoten zu starten.
+Dafür werden außerdem die Dateien <em>Nodes.txt</em> und <em>Graphviz.txt</em> benötigt.</p></div>
+<div class="paragraph"><p>Man kann sich entweder dafür entscheiden die Knoten im <em>Gerücht-Modus</em> oder
+normal laufen zu lassen.
+Dafür startet man eine Shell und fürt das gewünschte Skript aus.</p></div>
+<div class="paragraph"><p>In einer weiteren Shell kann daraufhin das Skript für den Kontrollknoten
+aufgerufen werden.
+Mit diesem kann man sich daraufhin einen Knoten auswählen den man anstoßen
+möchte.</p></div>
+<div class="paragraph"><p>Die Ausgaben der Knoten werden in Textdateien umgelenkt und können
+beispielsweise nach dem beenden der Programme eingesehen werden.</p></div>
+<div class="paragraph"><p>Bei der Ausführung der autonomen Knoten im Gerüchte-Modus, schreibt jeder
+Knoten der das Gerücht glaubt eine Textdatei mit dem Gerücht in das
+aktuelle Verzeichnis.
+Dies erleichtert die Beurteilung, welcher Knoten das Gerücht geglaubt hat
+und wer nicht.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_fazit_gewonnene_erkenntnisse">Fazit (gewonnene Erkenntnisse)</h3>
+<div class="paragraph"><p>Aus dieser Übung habe ich hauptsächlich nur das erlernen der Sprache Go
+mitgenommen, da die Aufgabenstellung im letzten Jahr sehr ähnlich
+beziehungsweise teilweise identisch war.</p></div>
+<div class="paragraph"><p>Ein weiterer Teil meiner Erkenntnis bezieht sich auf etwas, was bereits
+im der Vorlesung <em>Softwareentwicklung für Kommunikationsnetze</em> bemerkt wurde.
+Dabei handelt es sich um die Tatsache, dass ein gutes Loggin bei solchen
+Anwendungen mit das wichtigste ist, da man sonst kaum weiß wo oben und unten ist.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_exercise_2">Exercise 2</h2>
+<div class="sectionbody">
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/warning.png" alt="Warning" />
+</td>
+<td class="content">Diese Aufgabe ist so gut wie kaum implementiert.
+Es wurde alles vorbereitet, jedoch nicht zu Ende geführt.</td>
+</tr></table>
+</div>
+<div class="sect2">
+<h3 id="_erläuterung_der_idee_2">Erläuterung der Idee</h3>
+<div class="paragraph"><p>Die Idee bei dieser Aufgabe war es, sich den Ablauf zu zeichnen
+und anschließend einfach herunter zu programmieren.</p></div>
+<div class="imageblock">
+<div class="content">
+<img src="../exercise2/doc//Exercise2_Incoming-Init.png" alt="Exercise2_Incoming-Init.png" />
+</div>
+<div class="title">Bild 1: Eingehende Initialisierung</div>
+</div>
+<div class="paragraph"><p>In Bild 1 ist zu sehen wie ein Knoten reagieren soll wenn eine
+Init Nachricht eintrifft.
+Dabei wird geprüft ob es sich um einen Kunden handelt.
+Ist dies der Fall, so werden Freunde festgelegt und die Grenzwerte
+für das kaufen und weitererzählen von Produkten festgelegt.</p></div>
+<div class="paragraph"><p>Sollte es sich um ein Unternehmen handeln, so wird zuerst das
+Budget und die Nachbarn festelegt.
+Sobald dies geschehen ist kann mit der Werbung begonnen werden.
+Dies wird solange wiederholt, solange noch genügend Geld vorhanden ist.</p></div>
+<div class="imageblock">
+<div class="content">
+<img src="../exercise2/doc//Exercise2_Incoming-App.png" alt="Exercise2_Incoming-App.png" />
+</div>
+<div class="title">Bild 2: Eingehende Anwendungsnachricht</div>
+</div>
+<div class="paragraph"><p>Bild 2 zeigt das Szenario einer einkommenden Anwendungsnachricht.
+Sollte es sich um einen Unternehmen handeln, so wird geprüft
+ob etwas gekauft wurde.
+Falls dies der Fall ist, wird das Budet erhöt und der Knoten als
+Kunde hinzugefügt, andernfalls wird der Vorgang beendet.</p></div>
+<div class="paragraph"><p>Der Kunde muss hingegen prüfen ob es sich um eine Info eines Freundes
+oder Unternehmens handelt.
+Darauf werden die jeweiligen Schwellwerte überprüft und im Falle eines
+nicht erreichten Wertes nachgeschaut, ob das Produkt bereits gekauft wurde.
+Falls der Kunde das Produkt noch nicht besitzt wird es gekauft und
+den Nachbarn mitgeteilt.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_nachrichtenformat_2">Nachrichtenformat</h3>
+<div class="paragraph"><p>Das Nachrichtenformat ist identisch zu dem aus Aufgabe 1 mit dem
+einzigen Unterschied, dass ein Feld vom Typ <em>KnotenTyp</em> eingefügt wurde.
+Damit soll die Unterscheidung Kunde &lt;&#8594; Unternehmen durchgeführt werden.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_erläuterung_der_softwarestruktur_2">Erläuterung der Softwarestruktur</h3>
+<div class="paragraph"><p>Die Struktur dieser Applikation ist ähnlich zu der aus Aufgabe 1.
+Es wurden jeweils nur noch zwei weitere Typen hinzugefügt um einen
+Kunden und ein Unternehmen representieren und verwalten zu können.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_hinweise_auf_implementierungsbesonderheiten_2">Hinweise auf Implementierungsbesonderheiten</h3>
+<div class="paragraph"><p>Hier sind nur die Tests zu nennen, da sonst nichts besonderes
+realisiert wurde.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_typische_beispielabläufe_2">typische Beispielabläufe</h3>
+<div class="paragraph"><p>Wenn es denn laufen würde, wäre das Prinzip analog zu Aufgabe 1
+anzuwenden.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_fazit_gewonnene_erkenntnisse_2">Fazit (gewonnene Erkenntnisse)</h3>
+<div class="paragraph"><p>Das jährliche "In den Weihnachtsferien werde ich schon genügend
+Zeit haben." erneut gekommt wiederlegt.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_exercise_3">Exercise 3</h2>
+<div class="sectionbody">
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<img src="./images/icons/warning.png" alt="Warning" />
+</td>
+<td class="content">Nur zu ca 90-95% umgesetzt, da noch ein Problem auftritt.</td>
+</tr></table>
+</div>
+<div class="sect2">
+<h3 id="_erläuterung_der_idee_3">Erläuterung der Idee</h3>
+<div class="paragraph"><p>Die Idee bei Aufgabe 3 war, eine sequenzielle Anwendung zu erstellen
+um daraufhin einen weiteren Prozess hinzu zu nehmen um dann die daraus
+resultierenden Probleme zu beheben.</p></div>
+<div class="paragraph"><p>Dabei wurde ein sogenannter <strong>FileManager</strong> und <strong>FileUser</strong> erstellt.
+Der FileManager verwaltet eine Datei und kann Berechtigungen an Benutzer
+vergeben.
+Das schreiben in die Datei wurde von mir so implementiert, dass der Benutzer
+den Pfad zur Datei ausgehändigt bekommt (Aufgrund der Anforderung, dass es
+nur auf localhost lauffähig sein soll) und diese daraufhin selbst beschreiben
+darf.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_nachrichtenformat_3">Nachrichtenformat</h3>
+<div class="paragraph"><p>Für diese Aufgabe wurde ein abgewandeltes Nachrichtenformat benutzt.
+Es wurden drei Nachrichten definiert:
+* FilemanagerRequest
+* FilemanagerResponse
+* GoldmanToken</p></div>
+<div class="paragraph"><p>Der FilemanagerRequest wird von einem Benutzer an den Verwalter
+gesendet der wiederum mit einem FilemanagerResponse antwortet.
+Somit empfängt ein Manager immer Requests und ein Benutzer
+immer Responses.</p></div>
+<div class="paragraph"><p>Sollte es zu einem vermutlichem Deadlock kommen (was bei nur 2
+Managern immer der Fall ist), wird das GoldmanToken zu dem Prozess
+gesendet der als blockierender Prozess in der Response angegeben wurde.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_erläuterung_der_softwarestruktur_3">Erläuterung der Softwarestruktur</h3>
+<div class="paragraph"><p>Von der Struktur her existieren diesmal zwei Quellcode Dateien.
+Eine für den Verwalter und eine für den Benutzer.</p></div>
+<div class="paragraph"><p>Die verwendete Datenstruktur ist weiterhin das Server-Object
+welches bereits für Aufgabe 1 verwendet wurde.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_hinweise_auf_implementierungsbesonderheiten_3">Hinweise auf Implementierungsbesonderheiten</h3>
+<div class="paragraph"><p>Es wurden, wie auch schon in Aufgabe 1 und 2, Goroutinen eingesetzt.
+Diesmal wurde jedoch kein Channel verwendet, sondern ein Mutex,
+der sicherstellen soll, dass die ID desjenigen der die Datei derzeit
+belegt korrekt ist.</p></div>
+<div class="paragraph"><p>Auch wurde eine sogenannte Closure genutzt um eine Variable als
+Funktion zu definieren um je nachdem ob es sich um einen Prozess
+mit gerader oder ungerader ID handelt eine andere Funktion zuweist.
+So konnte in der "Hauptschleife" nur diese eine Funktion verwendet
+werden ohne das immer unterschieden werden musste ob es ein gerader
+oder ungerader Prozess ist.</p></div>
+<div class="paragraph"><p>Das wichtigste ist jedoch, dass die Benutzer jeweils nur mit
+geraden Protnummern ausgestattet werden dürfen.
+Dies wurde aus dem Grund definiert, weil der darauffolgende
+ungerade Port dafür verwendet wird um das Token zu empfangen.
+Bei dem Empfangen unterschiedlicher Nachrichtenarten auf einem
+Port kam es bei der Verwendung von Protobuf zu problemen, da
+dieser nicht genau feststellen konnte um welchen Nachrichtentyp
+es sich handelt.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_typische_beispielabläufe_3">typische Beispielabläufe</h3>
+<div class="paragraph"><p>Wie auch bei den anderen Aufgaben existiert im <em>exercise3</em> Ordner
+ein Verzeichnis namens <em>example</em> in dem ein Makefile und Shell
+Skripte zu finden sind.</p></div>
+<div class="paragraph"><p>Die Datei <em>startSkript.sh</em> wurde nicht oft verwendet.
+Der Ablauf der meist genutzt wurde war, dass vier
+Terminals gestartet wurden.
+In den ersten beiden wurden ein ManagerA und ein ManagerB,
+zu denen jeweils auch Start-Skripte existieren, gestartet.
+Die zwei verbleibenden Terminals werden jeweils durch das Skirpt
+<em>startFileUser.sh</em> in Betrieb genommen.
+Gibt man diesem Skript keinen Parameter mit, so wird eine Version
+des FileUsers gestartet.
+Wird mindestens ein Parameter mitgegeben, so führt das Skript einen
+FileUser mit anderen Einstellungen aus.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_fazit_gewonnene_erkenntnisse_3">Fazit (gewonnene Erkenntnisse)</h3>
+<div class="paragraph"><p>Bei dieser Aufgabe habe ich wiedereinmal feststellen müssen,
+dass Aufgaben manchmal leichter klingen als sie eigentlich sind.
+Ich bin davon ausgegangen, dass ich diese Aufgabe in kürzester Zeit
+lösen könne, hatte jedoch so viele Probleme beim Debuggen und beim
+finden von Fehlern.</p></div>
+<div class="paragraph"><p>Es war desweiteren Ärgerlich nach geraumer Zeit feststellen zu
+müssen, dass unterschiedliche Nachrichten auf dem selbem Port
+schwierig zu handhaben sind.</p></div>
+<div class="paragraph"><p>Ansonsten war dies eine sehr spannende Aufgabe, die mir (und
+teilweise meinen Kollegen bei der Consistec) sehr viel Spaß gemacht
+hat.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_fazit_übergreifend">Fazit (Übergreifend)</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Zusätzlich zu den Fazits der einzelnen Übungen wollte ich noch ein
+übergreifendes Fazit abgeben.
+Dabei handelt es sich vorallem darum, dass Dinge, die man sich vornimmt,
+nicht immer eingehalten werden.
+Wenn man bedenkt, dass ich auf gut Glück bereits gegen ende August mit der
+Bearbeitung der im letzten Jahr erschienenen Aufgabe 1 begonnen habe,
+so bin ich wirklich nicht weit gekommen.
+Zwar war ich mit der ersten Aufgabe zeitnah (für das Semester) fertig, jedoch
+hat das dazwischenliegende Praktikum einen größeren Strich durch die Rechnung
+gemacht, als ich zu beginn von ausgegangen bin.</p></div>
+<div class="paragraph"><p>Desweiteren muss ich eingestehen, dass Go einige merkwürdige beziehungsweise
+gewöhnungsbedürftige Konzepte besitzt mit denen ich mich recht schwer getan habe.
+Dafür wurde mir jedoch das Leben durch die Verwendung von GitHub
+etwas erleichtert.
+Ich nutzte die dort angebotene Funktion <em>Issues</em> einzureichen welche ich
+ab und an erstellte um diese nach und nach abzuarbeiten.
+Außerdem vereinfacht die <em>git gui</em> die Arbeit beim comitten, so dass
+nur bestimmte teile aus einer Datei heraus comitted werden.</p></div>
+</div>
+</div>
+</div>
+<div id="footnotes"><hr /></div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2015-02-15 21:20:20 CET
+</div>
+</div>
+</body>
+</html>

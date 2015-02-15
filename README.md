@@ -21,3 +21,12 @@ You can also build the generateGraphviz application with:
 The example directory holds some shell scripts that executes the build
 commands and start some instances with the there available NodeList and
 Graphviz files.
+
+DOCUMENTATION
+=============
+
+A in asciidoc written documentation can be found in the doc folder.
+Also, each exercise folder has its own doc folder, where the documentation
+about the specific exercise is placed. The directory in the root of the
+project includes these files to generate a overall documentation about
+this project.

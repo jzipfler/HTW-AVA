@@ -76,6 +76,11 @@ Gibt man diesem Skript keinen Parameter mit, so wird eine Version
 des FileUsers gestartet.
 Wird mindestens ein Parameter mitgegeben, so führt das Skript einen
 FileUser mit anderen Einstellungen aus.
+Für dieses Verhalten existiert eine Ausnahme.
+Diese Tritt in Kraft wenn es sich bei dem ersten Parameter um das
+Word "tcp" (klein) handelt.
+Dieses wird dann konsumiert (shift) und daraufhin gilt die obere
+Regel wieder.
 
 === Fazit (gewonnene Erkenntnisse)
 Bei dieser Aufgabe habe ich wiedereinmal feststellen müssen,

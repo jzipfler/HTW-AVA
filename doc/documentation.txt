@@ -37,9 +37,31 @@ können die von Go zur Verfügung gestellten Tools genutzt werden.
 Da mein Quellcode auf GitHub öffentlich zur Verfügung steht, kann
 mein Projekt mit dem folgendem Befehl heruntergeladen werden:
 
-```sh
+[source,sh]
+----
 go get -u github.com/jzipfler/HTW-AVA/{avaStarter,avaStarter2,exercise3/fileManager,exercise3/fileUser}
-```
+----
+
+Sollte dies fehlschlagen kann das Repository mithilfe von git
+wie folgt geklont werden:
+
+[source,sh]
+----
+git clone github.com/jzipfler/HTW-AVA/ ${GOPATH}/src/github.com/jzipfler/HTW-AVA
+----
+
+Nachdem die Dateien auf der Festplatte sind, können die Pakete
+entweder über die Makefiles in den _example_ Ordnern,
+oder über die folgenden Befehle übersetzt werden:
+
+[source,sh]
+----
+git build -v github.com/jzipfler/HTW-AVA/{avaStarter,avaStarter2,exercise3/fileManager,exercise3/fileUser}
+----
+
+Dabei muss beachtet werden, dass dieses Projekt eine Abhängigkeit
+zu Protobuf aufweist, welches einmal in der Version von
+googlecode und von github benötigt wird.
 
 include::../exercise1/doc/documentation_ex1.txt[]
 
